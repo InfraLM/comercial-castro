@@ -1,0 +1,8 @@
+[functions.list-tables]
+verify_jwt = false
+
+[functions.get-table-data]
+verify_jwt = false
+
+[functions.external-db-query]
+verify_jwt = false
