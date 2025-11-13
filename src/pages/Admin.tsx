@@ -6,9 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader2, Database, CheckCircle2, XCircle, Info, Send } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { MeetingsConfigSection } from "@/components/admin/MeetingsConfigSection";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -133,8 +135,8 @@ const Admin = () => {
           <div className="flex items-center gap-3">
             <Database className="h-8 w-8 text-primary" />
             <div>
-              <h1 className="text-3xl font-bold text-foreground">External Database Connection</h1>
-              <p className="text-muted-foreground">Monitor and explore your PostgreSQL tables</p>
+              <h1 className="text-3xl font-bold text-foreground">Administrador</h1>
+              <p className="text-muted-foreground">Gerencie banco de dados e configurações</p>
             </div>
           </div>
           <NavLink to="/">
@@ -142,7 +144,14 @@ const Admin = () => {
           </NavLink>
         </div>
 
-        {/* Connection Status Card */}
+        <Tabs defaultValue="database" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="database">Banco de Dados</TabsTrigger>
+            <TabsTrigger value="meetings">Configuração de Reuniões</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="database" className="space-y-6 mt-6">
+            {/* Connection Status Card */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -338,6 +347,12 @@ const Admin = () => {
             </CardContent>
           </Card>
         )}
+          </TabsContent>
+
+          <TabsContent value="meetings" className="space-y-6 mt-6">
+            <MeetingsConfigSection />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

@@ -13,15 +13,12 @@ import { CalendarIcon, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { NavLink } from "@/components/NavLink";
+import { useMeetingsConfig } from "@/contexts/MeetingsConfigContext";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
-const SDR_OPTIONS = ["Gustavo", "Murilo", "Weber", "Luanda", "Ana Beatriz", "Luiz Gustavo"];
-const CLOSERS_OPTIONS = ["Ana Karolina", "Gustavo", "Marcelo", "Matheus", "Ricardo"];
-const TIPO_REUNIAO_OPTIONS = ["Pós graduação", "IOT + VM"];
-const SITUACAO_OPTIONS = ["Show", "No Show"];
-
 const Index = () => {
+  const { config } = useMeetingsConfig();
   const [open, setOpen] = useState(false);
   const [sdr, setSdr] = useState<string>("");
   const [closer, setCloser] = useState<string>("");
@@ -71,15 +68,25 @@ const Index = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!sdr || !closer || !tipoReuniao || !nome || !email || !diaReuniao || !situacao) {
-      toast.error("Por favor, preencha todos os campos");
+    // Valida apenas campos habilitados
+    const requiredFieldsValid = 
+      (!config.formFields.sdr || sdr) &&
+      (!config.formFields.closer || closer) &&
+      (!config.formFields.tipoReuniao || tipoReuniao) &&
+      (!config.formFields.nome || nome) &&
+      (!config.formFields.email || email) &&
+      (!config.formFields.diaReuniao || diaReuniao) &&
+      (!config.formFields.situacao || situacao);
+
+    if (!requiredFieldsValid) {
+      toast.error("Por favor, preencha todos os campos obrigatórios");
       return;
     }
 
     const now = new Date();
     const dia_registro_formatted = format(now, 'dd/MM/yyyy');
     const hora_registro_formatted = format(now, 'HH:mm:ss');
-    const dia_reuniao_formatted = format(diaReuniao, 'dd/MM/yyyy');
+    const dia_reuniao_formatted = diaReuniao ? format(diaReuniao, 'dd/MM/yyyy') : '';
     
     const id_reunioes = `${dia_registro_formatted}|${hora_registro_formatted}|${sdr}|${closer}|${nome}|${dia_reuniao_formatted}|${tipoReuniao}|${situacao}`;
     
@@ -129,117 +136,130 @@ const Index = () => {
                   </DialogHeader>
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="sdr">SDR *</Label>
-                        <Select value={sdr} onValueChange={setSdr}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o SDR" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {SDR_OPTIONS.map((option) => (
-                              <SelectItem key={option} value={option}>
-                                {option}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      {config.formFields.sdr && (
+                        <div className="space-y-2">
+                          <Label htmlFor="sdr">SDR *</Label>
+                          <Select value={sdr} onValueChange={setSdr}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o SDR" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {config.sdrOptions.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                  {option}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
 
-                      <div className="space-y-2">
-                        <Label htmlFor="closer">Closer *</Label>
-                        <Select value={closer} onValueChange={setCloser}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o Closer" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {CLOSERS_OPTIONS.map((option) => (
-                              <SelectItem key={option} value={option}>
-                                {option}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      {config.formFields.closer && (
+                        <div className="space-y-2">
+                          <Label htmlFor="closer">Closer *</Label>
+                          <Select value={closer} onValueChange={setCloser}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o Closer" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {config.closersOptions.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                  {option}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
 
-                      <div className="space-y-2">
-                        <Label htmlFor="tipo_reuniao">Tipo Reunião *</Label>
-                        <Select value={tipoReuniao} onValueChange={setTipoReuniao}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o tipo" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {TIPO_REUNIAO_OPTIONS.map((option) => (
-                              <SelectItem key={option} value={option}>
-                                {option}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      {config.formFields.tipoReuniao && (
+                        <div className="space-y-2">
+                          <Label htmlFor="tipo_reuniao">Tipo Reunião *</Label>
+                          <Select value={tipoReuniao} onValueChange={setTipoReuniao}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o tipo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {config.tipoReuniaoOptions.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                  {option}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
 
-                      <div className="space-y-2">
-                        <Label htmlFor="situacao">Situação *</Label>
-                        <Select value={situacao} onValueChange={setSituacao}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a situação" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {SITUACAO_OPTIONS.map((option) => (
-                              <SelectItem key={option} value={option}>
-                                {option}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      {config.formFields.situacao && (
+                        <div className="space-y-2">
+                          <Label htmlFor="situacao">Situação *</Label>
+                          <Select value={situacao} onValueChange={setSituacao}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a situação" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {config.situacaoOptions.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                  {option}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
 
-                      <div className="space-y-2">
-                        <Label htmlFor="nome">Nome *</Label>
-                        <Input
-                          id="nome"
-                          value={nome}
-                          onChange={(e) => setNome(e.target.value)}
-                          placeholder="Digite o nome"
-                        />
-                      </div>
+                      {config.formFields.nome && (
+                        <div className="space-y-2">
+                          <Label htmlFor="nome">Nome *</Label>
+                          <Input
+                            id="nome"
+                            value={nome}
+                            onChange={(e) => setNome(e.target.value)}
+                            placeholder="Digite o nome"
+                          />
+                        </div>
+                      )}
 
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email *</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="email@exemplo.com"
-                        />
-                      </div>
+                      {config.formFields.email && (
+                        <div className="space-y-2">
+                          <Label htmlFor="email">Email *</Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="email@exemplo.com"
+                          />
+                        </div>
+                      )}
 
-                      <div className="space-y-2 col-span-2">
-                        <Label>Data da Reunião *</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !diaReuniao && "text-muted-foreground"
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {diaReuniao ? format(diaReuniao, "dd/MM/yyyy") : "Selecione a data"}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={diaReuniao}
-                              onSelect={setDiaReuniao}
-                              initialFocus
-                              className="pointer-events-auto"
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
+                      {config.formFields.diaReuniao && (
+                        <div className="space-y-2 col-span-2">
+                          <Label>Data da Reunião *</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !diaReuniao && "text-muted-foreground"
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {diaReuniao ? format(diaReuniao, "PPP") : <span>Selecione uma data</span>}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                              <Calendar
+                                mode="single"
+                                selected={diaReuniao}
+                                onSelect={setDiaReuniao}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex justify-end gap-2 pt-4">
