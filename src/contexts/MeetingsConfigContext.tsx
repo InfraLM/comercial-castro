@@ -41,14 +41,26 @@ interface MeetingsConfigContextType {
 const MeetingsConfigContext = createContext<MeetingsConfigContextType | undefined>(undefined);
 
 export const MeetingsConfigProvider = ({ children }: { children: ReactNode }) => {
-  const [config, setConfig] = useState<MeetingsConfig>(() => {
-    const saved = localStorage.getItem("meetingsConfig");
-    return saved ? JSON.parse(saved) : defaultConfig;
-  });
+  const [config, setConfig] = useState<MeetingsConfig>(defaultConfig);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem("meetingsConfig", JSON.stringify(config));
-  }, [config]);
+    const saved = localStorage.getItem("meetingsConfig");
+    if (saved) {
+      try {
+        setConfig(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse saved config:", e);
+      }
+    }
+    setIsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem("meetingsConfig", JSON.stringify(config));
+    }
+  }, [config, isLoaded]);
 
   const updateConfig = (newConfig: Partial<MeetingsConfig>) => {
     setConfig(prev => ({ ...prev, ...newConfig }));
