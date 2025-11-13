@@ -83,7 +83,7 @@ const Index = () => {
       sdr,
       closer,
       nome,
-      dia_reunião: format(diaReuniao, 'yyyy-MM-dd'),
+      dia_reuniao: format(diaReuniao, 'yyyy-MM-dd'),
       situacao,
       tipo_reuniao: tipoReuniao,
       email,
