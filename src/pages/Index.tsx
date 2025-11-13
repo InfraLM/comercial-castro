@@ -39,7 +39,7 @@ const Index = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          tableName: 'reunioes_comerfcial',
+          tableName: 'reuniões_comercial',
           data,
         }),
       });
