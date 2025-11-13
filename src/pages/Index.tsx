@@ -14,6 +14,10 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { NavLink } from "@/components/NavLink";
 import { useMeetingsConfig } from "@/contexts/MeetingsConfigContext";
+import { MeetingKPIs } from "@/components/dashboard/MeetingKPIs";
+import { SDRPerformanceChart } from "@/components/dashboard/SDRPerformanceChart";
+import { SDRPerformanceTable } from "@/components/dashboard/SDRPerformanceTable";
+import { MeetingTypeChart } from "@/components/dashboard/MeetingTypeChart";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -281,6 +285,23 @@ const Index = () => {
             </p>
           </CardContent>
         </Card>
+
+        {/* Dashboard e KPIs */}
+        <div className="mt-8 space-y-6">
+          <h2 className="text-2xl font-bold">Dashboard de Performance</h2>
+          
+          {/* KPIs Cards */}
+          <MeetingKPIs />
+
+          {/* Gráficos */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <SDRPerformanceChart />
+            <MeetingTypeChart />
+          </div>
+
+          {/* Tabela Detalhada */}
+          <SDRPerformanceTable />
+        </div>
       </div>
     </div>
   );
