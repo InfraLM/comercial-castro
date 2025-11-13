@@ -47,7 +47,7 @@ const Index = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ tableName: selectedTable, limit: 100 }),
+        body: JSON.stringify({ tableName: selectedTable }),
       });
       
       const data = await response.json();

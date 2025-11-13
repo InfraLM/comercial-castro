@@ -37,7 +37,7 @@ serve(async (req) => {
   let client: Client | null = null;
 
   try {
-    const { tableName, limit = 1000 } = await req.json();
+    const { tableName, limit = 999999 } = await req.json();
     
     console.log('Getting table data:', { tableName, limit });
 
