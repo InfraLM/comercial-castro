@@ -77,13 +77,20 @@ const Index = () => {
     }
 
     const now = new Date();
+    const dia_registro_formatted = format(now, 'dd/MM/yyyy');
+    const hora_registro_formatted = format(now, 'HH:mm:ss');
+    const dia_reuniao_formatted = format(diaReuniao, 'dd/MM/yyyy');
+    
+    const id_reunioes = `${dia_registro_formatted}|${hora_registro_formatted}|${sdr}|${closer}|${nome}|${dia_reuniao_formatted}|${tipoReuniao}|${situacao}`;
+    
     const data = {
-      dia_registro: format(now, 'yyyy-MM-dd'),
-      hora_registro: format(now, 'HH:mm:ss'),
+      id_reunioes,
+      dia_registro: dia_registro_formatted,
+      hora_registro: hora_registro_formatted,
       sdr,
       closer,
       nome,
-      dia_reuniao: format(diaReuniao, 'yyyy-MM-dd'),
+      dia_reuniao: dia_reuniao_formatted,
       situacao,
       tipo_reuniao: tipoReuniao,
       email,
