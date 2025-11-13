@@ -1,16 +1,21 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Database, CheckCircle2, XCircle, Info } from "lucide-react";
+import { Loader2, Database, CheckCircle2, XCircle, Info, Send } from "lucide-react";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 const Index = () => {
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
+  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [webhookUrl, setWebhookUrl] = useState<string>("");
+  const queryClient = useQueryClient();
 
   // Query to list all tables
   const { data: tablesData, isLoading: isLoadingTables, error: tablesError } = useQuery({
@@ -69,6 +74,55 @@ const Index = () => {
 
   const handleTableClick = (tableName: string) => {
     setSelectedTable(tableName);
+    setFormData({});
+  };
+
+  const insertMutation = useMutation({
+    mutationFn: async (data: { tableName: string; data: Record<string, string>; webhookUrl?: string }) => {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/insert-data`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to insert data');
+      }
+      
+      return result;
+    },
+    onSuccess: () => {
+      toast.success('Dados inseridos com sucesso!');
+      setFormData({});
+      queryClient.invalidateQueries({ queryKey: ['table-data', selectedTable] });
+    },
+    onError: (error: Error) => {
+      toast.error('Erro ao inserir dados', {
+        description: error.message,
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTable) return;
+    
+    insertMutation.mutate({
+      tableName: selectedTable,
+      data: formData,
+      webhookUrl: webhookUrl || undefined,
+    });
+  };
+
+  const handleInputChange = (columnName: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [columnName]: value,
+    }));
   };
 
   return (
@@ -169,6 +223,76 @@ const Index = () => {
                     ))}
                   </div>
                 </div>
+              )}
+
+              {/* Insert Data Form */}
+              {tableData && (
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Send className="h-5 w-5" />
+                      Inserir Dados
+                    </CardTitle>
+                    <CardDescription>
+                      Preencha os campos para inserir dados na tabela. Opcionalmente adicione um webhook URL.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {tableData.columns
+                          .filter((col: any) => col.name !== 'id' && col.name !== 'created_at' && col.name !== 'updated_at')
+                          .map((col: any) => (
+                          <div key={col.name} className="space-y-2">
+                            <Label htmlFor={col.name}>
+                              {col.name} {!col.nullable && <span className="text-destructive">*</span>}
+                              <span className="text-xs text-muted-foreground ml-2">({col.type})</span>
+                            </Label>
+                            <Input
+                              id={col.name}
+                              value={formData[col.name] || ''}
+                              onChange={(e) => handleInputChange(col.name, e.target.value)}
+                              required={!col.nullable}
+                              placeholder={`Digite ${col.name}`}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="space-y-2 pt-4 border-t">
+                        <Label htmlFor="webhook">
+                          Webhook URL (opcional)
+                          <span className="text-xs text-muted-foreground ml-2">Os dados serão enviados para esta URL após inserção</span>
+                        </Label>
+                        <Input
+                          id="webhook"
+                          type="url"
+                          value={webhookUrl}
+                          onChange={(e) => setWebhookUrl(e.target.value)}
+                          placeholder="https://seu-webhook.com/endpoint"
+                        />
+                      </div>
+
+                      <Button 
+                        type="submit" 
+                        className="w-full"
+                        disabled={insertMutation.isPending}
+                      >
+                        {insertMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Inserindo...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="mr-2 h-4 w-4" />
+                            Inserir Dados
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
               )}
 
               {/* Table Data */}
