@@ -49,7 +49,10 @@ export const MeetingTypeChart = () => {
 
   const typeCounts: Record<string, number> = {};
   meetings.forEach((meeting) => {
-    typeCounts[meeting.tipo_reuniao] = (typeCounts[meeting.tipo_reuniao] || 0) + 1;
+    if (meeting.tipo_reuniao) {
+      const tipo = meeting.tipo_reuniao.trim();
+      typeCounts[tipo] = (typeCounts[tipo] || 0) + 1;
+    }
   });
 
   const chartData = Object.entries(typeCounts).map(([name, value]) => ({

@@ -54,8 +54,12 @@ export const MeetingKPIs = () => {
   }
 
   const totalMeetings = meetings.length;
-  const showCount = meetings.filter(m => m.situacao === "Show").length;
-  const noShowCount = meetings.filter(m => m.situacao === "No Show").length;
+  const showCount = meetings.filter(m => 
+    m.situacao && m.situacao.toLowerCase().trim() === "show"
+  ).length;
+  const noShowCount = meetings.filter(m => 
+    m.situacao && m.situacao.toLowerCase().trim() === "no show"
+  ).length;
   const showRate = totalMeetings > 0 ? ((showCount / totalMeetings) * 100).toFixed(1) : "0";
   
   const uniqueSDRs = new Set(meetings.map(m => m.sdr)).size;
@@ -77,20 +81,20 @@ export const MeetingKPIs = () => {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Taxa de Show</CardTitle>
+          <CardTitle className="text-sm font-medium">Número de SHOW</CardTitle>
           <TrendingUp className="h-4 w-4 text-green-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{showRate}%</div>
+          <div className="text-2xl font-bold">{showCount}</div>
           <p className="text-xs text-muted-foreground">
-            {showCount} de {totalMeetings} reuniões
+            {showRate}% do total de reuniões
           </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">No Show</CardTitle>
+          <CardTitle className="text-sm font-medium">Número de NO SHOW</CardTitle>
           <TrendingDown className="h-4 w-4 text-destructive" />
         </CardHeader>
         <CardContent>

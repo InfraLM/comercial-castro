@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { useUserMapping } from "@/contexts/UserMappingContext";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -10,6 +11,8 @@ interface MeetingData {
 }
 
 export const SDRPerformanceChart = () => {
+  const { getSdrName } = useUserMapping();
+  
   const { data: meetings, isLoading } = useQuery({
     queryKey: ["meetings-data"],
     queryFn: async () => {
@@ -49,14 +52,17 @@ export const SDRPerformanceChart = () => {
   const sdrStats: Record<string, { Show: number; "No Show": number; total: number }> = {};
 
   meetings.forEach((meeting) => {
-    if (!sdrStats[meeting.sdr]) {
-      sdrStats[meeting.sdr] = { Show: 0, "No Show": 0, total: 0 };
+    const sdrName = getSdrName(meeting.sdr);
+    if (!sdrStats[sdrName]) {
+      sdrStats[sdrName] = { Show: 0, "No Show": 0, total: 0 };
     }
-    sdrStats[meeting.sdr].total++;
-    if (meeting.situacao === "Show") {
-      sdrStats[meeting.sdr].Show++;
-    } else if (meeting.situacao === "No Show") {
-      sdrStats[meeting.sdr]["No Show"]++;
+    sdrStats[sdrName].total++;
+    
+    const situacao = meeting.situacao?.toLowerCase().trim();
+    if (situacao === "show") {
+      sdrStats[sdrName].Show++;
+    } else if (situacao === "no show") {
+      sdrStats[sdrName]["No Show"]++;
     }
   });
 

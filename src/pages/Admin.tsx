@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Loader2, Database, CheckCircle2, XCircle, Info, Send } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { MeetingsConfigSection } from "@/components/admin/MeetingsConfigSection";
+import { UserMappingSection } from "@/components/admin/UserMappingSection";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -145,8 +146,9 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="database" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="database">Banco de Dados</TabsTrigger>
+            <TabsTrigger value="users">Usuários</TabsTrigger>
             <TabsTrigger value="meetings">Configuração de Reuniões</TabsTrigger>
           </TabsList>
 
@@ -347,6 +349,10 @@ const Admin = () => {
             </CardContent>
           </Card>
         )}
+          </TabsContent>
+
+          <TabsContent value="users" className="space-y-6 mt-6">
+            <UserMappingSection />
           </TabsContent>
 
           <TabsContent value="meetings" className="space-y-6 mt-6">
