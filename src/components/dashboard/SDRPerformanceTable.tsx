@@ -25,7 +25,7 @@ interface SDRPerformanceTableProps {
 }
 
 export const SDRPerformanceTable = ({ filterDateFrom, filterDateTo, filterSdr, filterCloser }: SDRPerformanceTableProps) => {
-  const { getSdrName } = useUserMapping();
+  const { getSdrName, getCloserName } = useUserMapping();
   
   const { data: meetings, isLoading } = useQuery({
     queryKey: ["meetings-data"],
@@ -75,7 +75,7 @@ export const SDRPerformanceTable = ({ filterDateFrom, filterDateTo, filterSdr, f
     }
 
     // Filtro de Closer
-    if (filterCloser && filterCloser !== "all" && !(m.closer === filterCloser || m.closer === filterCloser)) {
+    if (filterCloser && filterCloser !== "all" && !(m.closer === filterCloser || getCloserName(m.closer) === filterCloser)) {
       return false;
     }
 
@@ -120,8 +120,15 @@ export const SDRPerformanceTable = ({ filterDateFrom, filterDateTo, filterSdr, f
       noShow: data.noShow,
       total: data.total,
       showRate: data.total > 0 ? ((data.show / data.total) * 100).toFixed(1) : "0",
+      meetings: data.meetings,
     }))
     .sort((a, b) => b.total - a.total);
+
+  const getShowRateColor = (rate: number) => {
+    if (rate >= 75) return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+    if (rate >= 50) return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+    return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+  };
 
   return (
     <Card>
@@ -162,12 +169,9 @@ export const SDRPerformanceTable = ({ filterDateFrom, filterDateTo, filterSdr, f
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge 
-                          variant={parseFloat(row.showRate) >= 70 ? "default" : "secondary"}
-                          className="font-semibold"
-                        >
+                        <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full font-semibold text-sm ${getShowRateColor(parseFloat(row.showRate))}`}>
                           {row.showRate}%
-                        </Badge>
+                        </span>
                       </TableCell>
                     </TableRow>
                   </HoverCardTrigger>

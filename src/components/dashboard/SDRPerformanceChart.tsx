@@ -21,7 +21,7 @@ interface SDRPerformanceChartProps {
 }
 
 export const SDRPerformanceChart = ({ filterDateFrom, filterDateTo, filterSdr, filterCloser }: SDRPerformanceChartProps) => {
-  const { getSdrName } = useUserMapping();
+  const { getSdrName, getCloserName } = useUserMapping();
   
   const { data: meetings, isLoading } = useQuery({
     queryKey: ["meetings-data-chart"],
@@ -71,7 +71,7 @@ export const SDRPerformanceChart = ({ filterDateFrom, filterDateTo, filterSdr, f
     }
 
     // Filtro de Closer
-    if (filterCloser && filterCloser !== "all" && m.closer !== filterCloser) {
+    if (filterCloser && filterCloser !== "all" && !(m.closer === filterCloser || getCloserName(m.closer) === filterCloser)) {
       return false;
     }
 
