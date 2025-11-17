@@ -75,7 +75,7 @@ export const SDRPerformanceTable = ({ filterDateFrom, filterDateTo, filterSdr, f
     }
 
     // Filtro de Closer
-    if (filterCloser && filterCloser !== "all" && !(m.closer === filterCloser || getCloserName(m.closer) === filterCloser)) {
+    if (filterCloser && filterCloser !== "all" && !(m.closer === filterCloser || getCloserName(m.closer) === getCloserName(filterCloser))) {
       return false;
     }
 
