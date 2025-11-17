@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Calendar, TrendingUp, TrendingDown } from "lucide-react";
+import { parse, isWithinInterval } from "date-fns";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -8,11 +9,17 @@ interface MeetingData {
   sdr: string;
   closer: string;
   situacao: string;
-  tipo_reuniao: string;
-  dia_registro: string;
+  dia_reuniao: string;
 }
 
-export const MeetingKPIs = () => {
+interface MeetingKPIsProps {
+  filterDateFrom?: Date;
+  filterDateTo?: Date;
+  filterSdr?: string;
+  filterCloser?: string;
+}
+
+export const MeetingKPIs = ({ filterDateFrom, filterDateTo, filterSdr, filterCloser }: MeetingKPIsProps) => {
   const { data: meetings, isLoading } = useQuery({
     queryKey: ["meetings-data"],
     queryFn: async () => {
@@ -22,7 +29,7 @@ export const MeetingKPIs = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          query: 'SELECT * FROM reunioes_comercial ORDER BY dia_registro DESC',
+          query: 'SELECT sdr, closer, situacao, dia_reuniao FROM reunioes_comercial',
         }),
       });
 
@@ -33,10 +40,42 @@ export const MeetingKPIs = () => {
 
       return result.data as MeetingData[];
     },
-    refetchInterval: 30000, // Atualiza a cada 30 segundos
+    refetchInterval: 30000,
   });
 
-  if (isLoading || !meetings) {
+  const filteredMeetings = meetings?.filter((m) => {
+    // Filtro de data
+    if (filterDateFrom || filterDateTo) {
+      try {
+        const meetingDate = parse(m.dia_reuniao, 'dd/MM/yyyy', new Date());
+        if (filterDateFrom && filterDateTo) {
+          if (!isWithinInterval(meetingDate, { start: filterDateFrom, end: filterDateTo })) {
+            return false;
+          }
+        } else if (filterDateFrom) {
+          if (meetingDate < filterDateFrom) return false;
+        } else if (filterDateTo) {
+          if (meetingDate > filterDateTo) return false;
+        }
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // Filtro de SDR
+    if (filterSdr && filterSdr !== "all" && m.sdr !== filterSdr) {
+      return false;
+    }
+
+    // Filtro de Closer
+    if (filterCloser && filterCloser !== "all" && m.closer !== filterCloser) {
+      return false;
+    }
+
+    return true;
+  });
+
+  if (isLoading || !filteredMeetings) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (
@@ -53,16 +92,17 @@ export const MeetingKPIs = () => {
     );
   }
 
-  const totalMeetings = meetings.length;
-  const showCount = meetings.filter(m => 
+  const totalMeetings = filteredMeetings.length;
+  const showCount = filteredMeetings.filter(m => 
     m.situacao && m.situacao.toLowerCase().trim() === "show"
   ).length;
-  const noShowCount = meetings.filter(m => 
+  const noShowCount = filteredMeetings.filter(m => 
     m.situacao && m.situacao.toLowerCase().trim() === "no show"
   ).length;
   const showRate = totalMeetings > 0 ? ((showCount / totalMeetings) * 100).toFixed(1) : "0";
+  const noShowRate = totalMeetings > 0 ? ((noShowCount / totalMeetings) * 100).toFixed(1) : "0";
   
-  const uniqueSDRs = new Set(meetings.map(m => m.sdr)).size;
+  const uniqueSDRs = new Set(filteredMeetings.map(m => m.sdr)).size;
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -87,7 +127,7 @@ export const MeetingKPIs = () => {
         <CardContent>
           <div className="text-2xl font-bold">{showCount}</div>
           <p className="text-xs text-muted-foreground">
-            {showRate}% do total de reuniões
+            {showRate}% do total
           </p>
         </CardContent>
       </Card>
@@ -100,7 +140,7 @@ export const MeetingKPIs = () => {
         <CardContent>
           <div className="text-2xl font-bold">{noShowCount}</div>
           <p className="text-xs text-muted-foreground">
-            {totalMeetings > 0 ? ((noShowCount / totalMeetings) * 100).toFixed(1) : "0"}% do total
+            {noShowRate}% do total
           </p>
         </CardContent>
       </Card>

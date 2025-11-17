@@ -1,16 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { parse, isWithinInterval } from "date-fns";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 interface MeetingData {
   tipo_reuniao: string;
+  sdr: string;
+  closer: string;
+  dia_reuniao: string;
 }
 
 const COLORS = ['hsl(142.1 76.2% 36.3%)', 'hsl(221.2 83.2% 53.3%)', 'hsl(47.9 95.8% 53.1%)', 'hsl(280.9 70% 50.8%)'];
 
-export const MeetingTypeChart = () => {
+interface MeetingTypeChartProps {
+  filterDateFrom?: Date;
+  filterDateTo?: Date;
+  filterSdr?: string;
+  filterCloser?: string;
+}
+
+export const MeetingTypeChart = ({ filterDateFrom, filterDateTo, filterSdr, filterCloser }: MeetingTypeChartProps) => {
   const { data: meetings, isLoading } = useQuery({
     queryKey: ["meetings-data"],
     queryFn: async () => {
@@ -20,7 +31,7 @@ export const MeetingTypeChart = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          query: 'SELECT tipo_reuniao FROM reunioes_comercial',
+          query: 'SELECT tipo_reuniao, sdr, closer, dia_reuniao FROM reunioes_comercial',
         }),
       });
 
@@ -34,7 +45,39 @@ export const MeetingTypeChart = () => {
     refetchInterval: 30000,
   });
 
-  if (isLoading || !meetings) {
+  const filteredMeetings = meetings?.filter((m) => {
+    // Filtro de data
+    if (filterDateFrom || filterDateTo) {
+      try {
+        const meetingDate = parse(m.dia_reuniao, 'dd/MM/yyyy', new Date());
+        if (filterDateFrom && filterDateTo) {
+          if (!isWithinInterval(meetingDate, { start: filterDateFrom, end: filterDateTo })) {
+            return false;
+          }
+        } else if (filterDateFrom) {
+          if (meetingDate < filterDateFrom) return false;
+        } else if (filterDateTo) {
+          if (meetingDate > filterDateTo) return false;
+        }
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // Filtro de SDR
+    if (filterSdr && filterSdr !== "all" && m.sdr !== filterSdr) {
+      return false;
+    }
+
+    // Filtro de Closer
+    if (filterCloser && filterCloser !== "all" && m.closer !== filterCloser) {
+      return false;
+    }
+
+    return true;
+  });
+
+  if (isLoading || !filteredMeetings) {
     return (
       <Card>
         <CardHeader>
@@ -48,16 +91,18 @@ export const MeetingTypeChart = () => {
   }
 
   const typeCounts: Record<string, number> = {};
-  meetings.forEach((meeting) => {
+  filteredMeetings.forEach((meeting) => {
     if (meeting.tipo_reuniao) {
       const tipo = meeting.tipo_reuniao.trim();
       typeCounts[tipo] = (typeCounts[tipo] || 0) + 1;
     }
   });
 
+  const totalMeetings = filteredMeetings.length;
   const chartData = Object.entries(typeCounts).map(([name, value]) => ({
     name,
     value,
+    percentage: ((value / totalMeetings) * 100).toFixed(1),
   }));
 
   return (
@@ -72,9 +117,9 @@ export const MeetingTypeChart = () => {
               data={chartData}
               cx="50%"
               cy="50%"
-              labelLine={false}
-              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-              outerRadius={100}
+              labelLine={true}
+              label={({ name, value, percentage }) => `${name}: ${value} (${percentage}%)`}
+              outerRadius={80}
               fill="#8884d8"
               dataKey="value"
             >
@@ -83,13 +128,22 @@ export const MeetingTypeChart = () => {
               ))}
             </Pie>
             <Tooltip 
+              formatter={(value: number, name: string, props: any) => [
+                `${value} reuniões (${props.payload.percentage}%)`,
+                name
+              ]}
               contentStyle={{ 
                 backgroundColor: 'hsl(var(--card))',
                 border: '1px solid hsl(var(--border))',
                 borderRadius: '0.5rem'
               }}
             />
-            <Legend />
+            <Legend 
+              layout="vertical"
+              align="right"
+              verticalAlign="middle"
+              formatter={(value: string, entry: any) => `${value}: ${entry.payload.value} (${entry.payload.percentage}%)`}
+            />
           </PieChart>
         </ResponsiveContainer>
       </CardContent>
