@@ -26,7 +26,7 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 const Index = () => {
   const { config } = useMeetingsConfig();
-  const { getSdrName, getCloserName } = useUserMapping();
+  const { getSdrName, getCloserName, sdrMapping, closerMapping } = useUserMapping();
   const [open, setOpen] = useState(false);
   const [sdr, setSdr] = useState<string>("");
   const [closer, setCloser] = useState<string>("");
@@ -345,9 +345,11 @@ const Index = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos os SDRs</SelectItem>
-                      {config.sdrOptions.map((sdrEmail) => (
-                        <SelectItem key={sdrEmail} value={sdrEmail}>
-                          {getSdrName(sdrEmail)}
+                      {(
+                        Object.keys(sdrMapping).length ? Object.keys(sdrMapping) : config.sdrOptions
+                      ).map((val) => (
+                        <SelectItem key={val} value={Object.keys(sdrMapping).length ? val : val}>
+                          {Object.keys(sdrMapping).length ? getSdrName(val) : getSdrName(val)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -363,9 +365,11 @@ const Index = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos os Closers</SelectItem>
-                      {config.closersOptions.map((closerEmail) => (
-                        <SelectItem key={closerEmail} value={closerEmail}>
-                          {getCloserName(closerEmail)}
+                      {(
+                        Object.keys(closerMapping).length ? Object.keys(closerMapping) : config.closersOptions
+                      ).map((val) => (
+                        <SelectItem key={val} value={Object.keys(closerMapping).length ? val : val}>
+                          {Object.keys(closerMapping).length ? getCloserName(val) : getCloserName(val)}
                         </SelectItem>
                       ))}
                     </SelectContent>
