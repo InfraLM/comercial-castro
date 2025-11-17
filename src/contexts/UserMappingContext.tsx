@@ -19,21 +19,49 @@ const UserMappingContext = createContext<UserMappingContextType | undefined>(und
 
 export const UserMappingProvider = ({ children }: { children: ReactNode }) => {
   const [sdrMapping, setSdrMapping] = useState<UserMapping>(() => {
-    const saved = localStorage.getItem("sdrMapping");
-    return saved ? JSON.parse(saved) : {};
+    try {
+      const saved = localStorage.getItem("sdrMapping");
+      console.log("📦 Loading SDR mapping from localStorage:", saved);
+      const parsed = saved ? JSON.parse(saved) : {};
+      console.log("✅ SDR mapping loaded:", parsed);
+      return parsed;
+    } catch (error) {
+      console.error("❌ Error loading SDR mapping:", error);
+      return {};
+    }
   });
 
   const [closerMapping, setCloserMapping] = useState<UserMapping>(() => {
-    const saved = localStorage.getItem("closerMapping");
-    return saved ? JSON.parse(saved) : {};
+    try {
+      const saved = localStorage.getItem("closerMapping");
+      console.log("📦 Loading Closer mapping from localStorage:", saved);
+      const parsed = saved ? JSON.parse(saved) : {};
+      console.log("✅ Closer mapping loaded:", parsed);
+      return parsed;
+    } catch (error) {
+      console.error("❌ Error loading Closer mapping:", error);
+      return {};
+    }
   });
 
   useEffect(() => {
-    localStorage.setItem("sdrMapping", JSON.stringify(sdrMapping));
+    try {
+      const stringified = JSON.stringify(sdrMapping);
+      localStorage.setItem("sdrMapping", stringified);
+      console.log("💾 SDR mapping saved to localStorage:", stringified);
+    } catch (error) {
+      console.error("❌ Error saving SDR mapping:", error);
+    }
   }, [sdrMapping]);
 
   useEffect(() => {
-    localStorage.setItem("closerMapping", JSON.stringify(closerMapping));
+    try {
+      const stringified = JSON.stringify(closerMapping);
+      localStorage.setItem("closerMapping", stringified);
+      console.log("💾 Closer mapping saved to localStorage:", stringified);
+    } catch (error) {
+      console.error("❌ Error saving Closer mapping:", error);
+    }
   }, [closerMapping]);
 
   const updateSdrMapping = (email: string, name: string) => {
@@ -61,11 +89,15 @@ export const UserMappingProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const getSdrName = (email: string) => {
-    return sdrMapping[email] || email;
+    const name = sdrMapping[email] || email;
+    console.log(`🔍 getSdrName("${email}") ->`, name, "| Current mapping:", sdrMapping);
+    return name;
   };
 
   const getCloserName = (email: string) => {
-    return closerMapping[email] || email;
+    const name = closerMapping[email] || email;
+    console.log(`🔍 getCloserName("${email}") ->`, name, "| Current mapping:", closerMapping);
+    return name;
   };
 
   return (
