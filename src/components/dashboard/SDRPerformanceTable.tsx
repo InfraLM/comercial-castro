@@ -144,72 +144,72 @@ export const SDRPerformanceTable = ({ filterDateFrom, filterDateTo, filterSdr, f
               const sdrMeetings = sdrStats[row.sdr]?.meetings || [];
               
               return (
-                <TableRow key={row.sdr}>
-                  <TableCell className="font-medium">
-                    <HoverCard>
-                      <HoverCardTrigger asChild>
-                        <span className="cursor-pointer hover:underline">{row.sdr}</span>
-                      </HoverCardTrigger>
-                      <HoverCardContent className="w-[600px]">
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-semibold mb-3">Reuniões de {row.sdr}</h4>
-                          <div className="max-h-[400px] overflow-y-auto">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Cliente</TableHead>
-                                  <TableHead>Data</TableHead>
-                                  <TableHead>Tipo</TableHead>
-                                  <TableHead>Situação</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {sdrMeetings.map((meeting, idx) => (
-                                  <TableRow key={idx}>
-                                    <TableCell className="text-xs">{meeting.nome}</TableCell>
-                                    <TableCell className="text-xs">{meeting.dia_reuniao}</TableCell>
-                                    <TableCell className="text-xs">{meeting.tipo_reuniao}</TableCell>
-                                    <TableCell className="text-xs">
-                                      <Badge 
-                                        variant="outline" 
-                                        className={
-                                          meeting.situacao?.toLowerCase().trim() === "show"
-                                            ? "bg-green-50 text-green-700 border-green-200"
-                                            : "bg-red-50 text-red-700 border-red-200"
-                                        }
-                                      >
-                                        {meeting.situacao}
-                                      </Badge>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </div>
-                      </HoverCardContent>
-                    </HoverCard>
-                  </TableCell>
-                  <TableCell className="text-center">{row.total}</TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                      {row.show}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                      {row.noShow}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge 
-                      variant={parseFloat(row.showRate) >= 70 ? "default" : "secondary"}
-                      className={parseFloat(row.showRate) >= 70 ? "bg-green-600" : "bg-yellow-600"}
-                    >
-                      {row.showRate}%
-                    </Badge>
-                  </TableCell>
-                </TableRow>
+                <HoverCard key={row.sdr}>
+                  <HoverCardTrigger asChild>
+                    <TableRow className="cursor-pointer hover:bg-muted/50">
+                      <TableCell className="font-medium">
+                        {row.sdr}
+                      </TableCell>
+                      <TableCell className="text-center">{row.total}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          {row.show}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                          {row.noShow}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge 
+                          variant={parseFloat(row.showRate) >= 70 ? "default" : "secondary"}
+                          className="font-semibold"
+                        >
+                          {row.showRate}%
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  </HoverCardTrigger>
+                  <HoverCardContent className="w-[600px]" align="center" side="top">
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-semibold mb-3">Reuniões de {row.sdr}</h4>
+                      <div className="max-h-[400px] overflow-y-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Cliente</TableHead>
+                              <TableHead>Data</TableHead>
+                              <TableHead>Tipo</TableHead>
+                              <TableHead>Situação</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {sdrMeetings.map((meeting, idx) => (
+                              <TableRow key={idx}>
+                                <TableCell className="text-xs">{meeting.nome}</TableCell>
+                                <TableCell className="text-xs">{meeting.dia_reuniao}</TableCell>
+                                <TableCell className="text-xs">{meeting.tipo_reuniao}</TableCell>
+                                <TableCell className="text-xs">
+                                  <Badge 
+                                    variant="outline" 
+                                    className={
+                                      meeting.situacao?.toLowerCase().trim() === "show"
+                                        ? "bg-green-50 text-green-700 border-green-200"
+                                        : "bg-red-50 text-red-700 border-red-200"
+                                    }
+                                  >
+                                    {meeting.situacao}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  </HoverCardContent>
+                </HoverCard>
               );
             })}
           </TableBody>
