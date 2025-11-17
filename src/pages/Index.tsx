@@ -19,6 +19,7 @@ import { SDRPerformanceChart } from "@/components/dashboard/SDRPerformanceChart"
 import { SDRPerformanceTable } from "@/components/dashboard/SDRPerformanceTable";
 import { MeetingTypeChart } from "@/components/dashboard/MeetingTypeChart";
 import { Badge } from "@/components/ui/badge";
+import type { DateRange } from "react-day-picker";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -34,8 +35,7 @@ const Index = () => {
   const [situacao, setSituacao] = useState<string>("");
   
   // Estados para os filtros
-  const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(undefined);
-  const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(undefined);
+  const [filterDateRange, setFilterDateRange] = useState<DateRange | undefined>(undefined);
   const [filterSdr, setFilterSdr] = useState<string>("");
   const [filterCloser, setFilterCloser] = useState<string>("");
 
@@ -304,41 +304,32 @@ const Index = () => {
                         variant="outline"
                         className={cn(
                           "w-full justify-start text-left font-normal",
-                          !filterDateFrom && !filterDateTo && "text-muted-foreground"
+                          !filterDateRange?.from && "text-muted-foreground"
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {filterDateFrom || filterDateTo ? (
-                          <span>
-                            {filterDateFrom ? format(filterDateFrom, "dd/MM/yyyy") : "..."} - {filterDateTo ? format(filterDateTo, "dd/MM/yyyy") : "..."}
-                          </span>
+                        {filterDateRange?.from ? (
+                          filterDateRange.to ? (
+                            <span>
+                              {format(filterDateRange.from, "dd/MM/yyyy")} - {format(filterDateRange.to, "dd/MM/yyyy")}
+                            </span>
+                          ) : (
+                            format(filterDateRange.from, "dd/MM/yyyy")
+                          )
                         ) : (
                           <span>Selecione o período</span>
                         )}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <div className="p-4 space-y-4">
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Data Início</Label>
-                          <Calendar
-                            mode="single"
-                            selected={filterDateFrom}
-                            onSelect={setFilterDateFrom}
-                            initialFocus
-                            className="pointer-events-auto"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Data Fim</Label>
-                          <Calendar
-                            mode="single"
-                            selected={filterDateTo}
-                            onSelect={setFilterDateTo}
-                            className="pointer-events-auto"
-                          />
-                        </div>
-                      </div>
+                      <Calendar
+                        mode="range"
+                        selected={filterDateRange}
+                        onSelect={setFilterDateRange}
+                        initialFocus
+                        className="pointer-events-auto"
+                        numberOfMonths={2}
+                      />
                     </PopoverContent>
                   </Popover>
                 </div>
@@ -352,9 +343,9 @@ const Index = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos os SDRs</SelectItem>
-                      {config.sdrOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
+                      {config.sdrOptions.map((sdrEmail) => (
+                        <SelectItem key={sdrEmail} value={sdrEmail}>
+                          {sdrEmail}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -370,9 +361,9 @@ const Index = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos os Closers</SelectItem>
-                      {config.closersOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
+                      {config.closersOptions.map((closerEmail) => (
+                        <SelectItem key={closerEmail} value={closerEmail}>
+                          {closerEmail}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -381,23 +372,15 @@ const Index = () => {
               </div>
 
               {/* Badges de filtros ativos */}
-              {(filterDateFrom || filterDateTo || (filterSdr && filterSdr !== "all") || (filterCloser && filterCloser !== "all")) && (
+              {(filterDateRange?.from || (filterSdr && filterSdr !== "all") || (filterCloser && filterCloser !== "all")) && (
                 <div className="flex flex-wrap gap-2 mt-4">
-                  {filterDateFrom && (
+                  {filterDateRange?.from && (
                     <Badge variant="secondary" className="gap-1">
-                      Início: {format(filterDateFrom, "dd/MM/yyyy")}
+                      Período: {format(filterDateRange.from, "dd/MM/yyyy")}
+                      {filterDateRange.to && ` - ${format(filterDateRange.to, "dd/MM/yyyy")}`}
                       <X 
                         className="h-3 w-3 cursor-pointer" 
-                        onClick={() => setFilterDateFrom(undefined)}
-                      />
-                    </Badge>
-                  )}
-                  {filterDateTo && (
-                    <Badge variant="secondary" className="gap-1">
-                      Fim: {format(filterDateTo, "dd/MM/yyyy")}
-                      <X 
-                        className="h-3 w-3 cursor-pointer" 
-                        onClick={() => setFilterDateTo(undefined)}
+                        onClick={() => setFilterDateRange(undefined)}
                       />
                     </Badge>
                   )}
@@ -423,8 +406,7 @@ const Index = () => {
                     variant="ghost" 
                     size="sm"
                     onClick={() => {
-                      setFilterDateFrom(undefined);
-                      setFilterDateTo(undefined);
+                      setFilterDateRange(undefined);
                       setFilterSdr("");
                       setFilterCloser("");
                     }}
@@ -443,8 +425,8 @@ const Index = () => {
           
           {/* KPIs Cards */}
           <MeetingKPIs 
-            filterDateFrom={filterDateFrom}
-            filterDateTo={filterDateTo}
+            filterDateFrom={filterDateRange?.from}
+            filterDateTo={filterDateRange?.to}
             filterSdr={filterSdr}
             filterCloser={filterCloser}
           />
@@ -452,14 +434,14 @@ const Index = () => {
           {/* Gráficos */}
           <div className="grid gap-6 md:grid-cols-[1.5fr_1fr]">
             <SDRPerformanceChart 
-              filterDateFrom={filterDateFrom}
-              filterDateTo={filterDateTo}
+              filterDateFrom={filterDateRange?.from}
+              filterDateTo={filterDateRange?.to}
               filterSdr={filterSdr}
               filterCloser={filterCloser}
             />
             <MeetingTypeChart 
-              filterDateFrom={filterDateFrom}
-              filterDateTo={filterDateTo}
+              filterDateFrom={filterDateRange?.from}
+              filterDateTo={filterDateRange?.to}
               filterSdr={filterSdr}
               filterCloser={filterCloser}
             />
@@ -467,8 +449,8 @@ const Index = () => {
 
           {/* Tabela Detalhada */}
           <SDRPerformanceTable 
-            filterDateFrom={filterDateFrom}
-            filterDateTo={filterDateTo}
+            filterDateFrom={filterDateRange?.from}
+            filterDateTo={filterDateRange?.to}
             filterSdr={filterSdr}
             filterCloser={filterCloser}
           />

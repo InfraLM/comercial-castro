@@ -144,7 +144,7 @@ export const SDRPerformanceTable = ({ filterDateFrom, filterDateTo, filterSdr, f
               const sdrMeetings = sdrStats[row.sdr]?.meetings || [];
               
               return (
-                <HoverCard key={row.sdr}>
+                <HoverCard key={row.sdr} openDelay={200}>
                   <HoverCardTrigger asChild>
                     <TableRow className="cursor-pointer hover:bg-muted/50">
                       <TableCell className="font-medium">
@@ -171,24 +171,28 @@ export const SDRPerformanceTable = ({ filterDateFrom, filterDateTo, filterSdr, f
                       </TableCell>
                     </TableRow>
                   </HoverCardTrigger>
-                  <HoverCardContent className="w-[600px]" align="center" side="top">
+                  <HoverCardContent 
+                    className="w-[700px] max-w-[90vw]" 
+                    side="top"
+                    sideOffset={10}
+                  >
                     <div className="space-y-2">
                       <h4 className="text-sm font-semibold mb-3">Reuniões de {row.sdr}</h4>
-                      <div className="max-h-[400px] overflow-y-auto">
+                      <div className="max-h-[400px] overflow-auto">
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>Cliente</TableHead>
-                              <TableHead>Data</TableHead>
-                              <TableHead>Tipo</TableHead>
-                              <TableHead>Situação</TableHead>
+                              <TableHead className="min-w-[150px]">Cliente</TableHead>
+                              <TableHead className="min-w-[100px]">Data</TableHead>
+                              <TableHead className="min-w-[120px]">Tipo</TableHead>
+                              <TableHead className="min-w-[100px]">Situação</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {sdrMeetings.map((meeting, idx) => (
                               <TableRow key={idx}>
                                 <TableCell className="text-xs">{meeting.nome}</TableCell>
-                                <TableCell className="text-xs">{meeting.dia_reuniao}</TableCell>
+                                <TableCell className="text-xs whitespace-nowrap">{meeting.dia_reuniao}</TableCell>
                                 <TableCell className="text-xs">{meeting.tipo_reuniao}</TableCell>
                                 <TableCell className="text-xs">
                                   <Badge 

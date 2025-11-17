@@ -99,6 +99,22 @@ export const MeetingTypeChart = ({ filterDateFrom, filterDateTo, filterSdr, filt
   });
 
   const totalMeetings = filteredMeetings.length;
+  
+  if (totalMeetings === 0 || Object.keys(typeCounts).length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Distribuição por Tipo de Reunião</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[350px] flex items-center justify-center text-muted-foreground">
+            Nenhum dado disponível para os filtros selecionados
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const chartData = Object.entries(typeCounts).map(([name, value]) => ({
     name,
     value,
@@ -117,9 +133,26 @@ export const MeetingTypeChart = ({ filterDateFrom, filterDateTo, filterSdr, filt
               data={chartData}
               cx="50%"
               cy="50%"
-              labelLine={true}
-              label={({ name, value, percentage }) => `${name}: ${value} (${percentage}%)`}
-              outerRadius={80}
+              labelLine={false}
+              label={({ cx, cy, midAngle, innerRadius, outerRadius, value, name }) => {
+                const RADIAN = Math.PI / 180;
+                const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                return (
+                  <text 
+                    x={x} 
+                    y={y} 
+                    fill="white" 
+                    textAnchor={x > cx ? 'start' : 'end'} 
+                    dominantBaseline="central"
+                    className="text-xs font-semibold"
+                  >
+                    {value}
+                  </text>
+                );
+              }}
+              outerRadius={100}
               fill="#8884d8"
               dataKey="value"
             >
@@ -142,7 +175,11 @@ export const MeetingTypeChart = ({ filterDateFrom, filterDateTo, filterSdr, filt
               layout="vertical"
               align="right"
               verticalAlign="middle"
-              formatter={(value: string, entry: any) => `${value}: ${entry.payload.value} (${entry.payload.percentage}%)`}
+              wrapperStyle={{ paddingLeft: '20px' }}
+              formatter={(value: string, entry: any) => {
+                const payload = entry.payload;
+                return `${value}: ${payload.value} (${payload.percentage}%)`;
+              }}
             />
           </PieChart>
         </ResponsiveContainer>
