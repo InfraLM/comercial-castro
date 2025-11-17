@@ -83,11 +83,23 @@ export const SDRPerformanceTable = ({ filterDateFrom, filterDateTo, filterSdr, f
 
     // Filtro de Closer (coluna closer)
     if (filterCloser && filterCloser !== "all") {
+      // Se closer está vazio, exclui a linha
+      if (!m.closer || m.closer.trim() === "") {
+        return false;
+      }
+      
       const mCloser = normalize(m.closer);
       const sel = normalize(filterCloser);
       const mCloserName = normalize(getCloserName(m.closer));
       const selName = normalize(getCloserName(filterCloser));
-      if (!(mCloser === sel || mCloserName === sel || mCloserName === selName)) {
+      
+      // Debug - remover depois de confirmar que funciona
+      if (mCloser === sel || mCloserName === sel || mCloser === selName || mCloserName === selName) {
+        console.log('✅ Match encontrado:', { mCloser, sel, mCloserName, selName });
+      }
+      
+      // Aceita match por ID ou por nome
+      if (!(mCloser === sel || mCloserName === sel || mCloser === selName || mCloserName === selName)) {
         return false;
       }
     }
