@@ -70,12 +70,12 @@ export const SDRPerformanceTable = ({ filterDateFrom, filterDateTo, filterSdr, f
     }
 
     // Filtro de SDR
-    if (filterSdr && filterSdr !== "all" && m.sdr !== filterSdr) {
+    if (filterSdr && filterSdr !== "all" && !(m.sdr === filterSdr || getSdrName(m.sdr) === filterSdr)) {
       return false;
     }
 
     // Filtro de Closer
-    if (filterCloser && filterCloser !== "all" && m.closer !== filterCloser) {
+    if (filterCloser && filterCloser !== "all" && !(m.closer === filterCloser || m.closer === filterCloser)) {
       return false;
     }
 
@@ -172,9 +172,10 @@ export const SDRPerformanceTable = ({ filterDateFrom, filterDateTo, filterSdr, f
                     </TableRow>
                   </HoverCardTrigger>
                   <HoverCardContent 
-                    className="w-[700px] max-w-[90vw]" 
+                    className="w-[900px] max-w-[95vw]"
                     side="top"
-                    sideOffset={10}
+                    align="center"
+                    sideOffset={14}
                   >
                     <div className="space-y-2">
                       <h4 className="text-sm font-semibold mb-3">Reuniões de {row.sdr}</h4>
