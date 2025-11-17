@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { NavLink } from "@/components/NavLink";
 import { useMeetingsConfig } from "@/contexts/MeetingsConfigContext";
+import { useUserMapping } from "@/contexts/UserMappingContext";
 import { MeetingKPIs } from "@/components/dashboard/MeetingKPIs";
 import { SDRPerformanceChart } from "@/components/dashboard/SDRPerformanceChart";
 import { SDRPerformanceTable } from "@/components/dashboard/SDRPerformanceTable";
@@ -25,6 +26,7 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 const Index = () => {
   const { config } = useMeetingsConfig();
+  const { getSdrName, getCloserName } = useUserMapping();
   const [open, setOpen] = useState(false);
   const [sdr, setSdr] = useState<string>("");
   const [closer, setCloser] = useState<string>("");
@@ -345,7 +347,7 @@ const Index = () => {
                       <SelectItem value="all">Todos os SDRs</SelectItem>
                       {config.sdrOptions.map((sdrEmail) => (
                         <SelectItem key={sdrEmail} value={sdrEmail}>
-                          {sdrEmail}
+                          {getSdrName(sdrEmail)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -363,7 +365,7 @@ const Index = () => {
                       <SelectItem value="all">Todos os Closers</SelectItem>
                       {config.closersOptions.map((closerEmail) => (
                         <SelectItem key={closerEmail} value={closerEmail}>
-                          {closerEmail}
+                          {getCloserName(closerEmail)}
                         </SelectItem>
                       ))}
                     </SelectContent>

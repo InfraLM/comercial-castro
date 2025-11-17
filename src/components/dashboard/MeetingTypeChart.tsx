@@ -129,14 +129,14 @@ export const MeetingTypeChart = ({ filterDateFrom, filterDateTo, filterSdr, filt
         <CardTitle>Distribuição por Tipo de Reunião</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={350}>
+        <ResponsiveContainer width="100%" height={400}>
           <PieChart>
             <Pie
               data={chartData}
               cx="50%"
-              cy="50%"
+              cy="40%"
               labelLine={false}
-              label={({ cx, cy, midAngle, innerRadius, outerRadius, value, name }) => {
+              label={({ cx, cy, midAngle, innerRadius, outerRadius, value }) => {
                 const RADIAN = Math.PI / 180;
                 const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
                 const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -148,13 +148,13 @@ export const MeetingTypeChart = ({ filterDateFrom, filterDateTo, filterSdr, filt
                     fill="white" 
                     textAnchor={x > cx ? 'start' : 'end'} 
                     dominantBaseline="central"
-                    className="text-xs font-semibold"
+                    className="text-sm font-semibold"
                   >
                     {value}
                   </text>
                 );
               }}
-              outerRadius={100}
+              outerRadius={110}
               fill="#8884d8"
               dataKey="value"
             >
@@ -174,10 +174,10 @@ export const MeetingTypeChart = ({ filterDateFrom, filterDateTo, filterSdr, filt
               }}
             />
             <Legend 
-              layout="vertical"
-              align="right"
-              verticalAlign="middle"
-              wrapperStyle={{ paddingLeft: '20px' }}
+              layout="horizontal"
+              align="center"
+              verticalAlign="bottom"
+              wrapperStyle={{ paddingTop: '20px' }}
               formatter={(value: string, entry: any) => {
                 const payload = entry.payload;
                 return `${value}: ${payload.value} (${payload.percentage}%)`;
