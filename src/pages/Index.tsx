@@ -388,7 +388,7 @@ const Index = () => {
                   )}
                   {filterSdr && filterSdr !== "all" && (
                     <Badge variant="secondary" className="gap-1">
-                      SDR: {filterSdr}
+                      SDR: {getSdrName(filterSdr)}
                       <X 
                         className="h-3 w-3 cursor-pointer" 
                         onClick={() => setFilterSdr("")}
@@ -397,7 +397,7 @@ const Index = () => {
                   )}
                   {filterCloser && filterCloser !== "all" && (
                     <Badge variant="secondary" className="gap-1">
-                      Closer: {filterCloser}
+                      Closer: {getCloserName(filterCloser)}
                       <X 
                         className="h-3 w-3 cursor-pointer" 
                         onClick={() => setFilterCloser("")}
