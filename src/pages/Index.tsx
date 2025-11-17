@@ -294,59 +294,51 @@ const Index = () => {
             {/* Filtros */}
             <div className="border-t pt-6">
               <h3 className="text-lg font-semibold mb-4">Filtros</h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {/* Filtro de Data Início */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Filtro de Período */}
                 <div className="space-y-2">
-                  <Label>Data Início</Label>
+                  <Label>Período</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
                           "w-full justify-start text-left font-normal",
-                          !filterDateFrom && "text-muted-foreground"
+                          !filterDateFrom && !filterDateTo && "text-muted-foreground"
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {filterDateFrom ? format(filterDateFrom, "PPP") : <span>Selecione</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={filterDateFrom}
-                        onSelect={setFilterDateFrom}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                {/* Filtro de Data Fim */}
-                <div className="space-y-2">
-                  <Label>Data Fim</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !filterDateTo && "text-muted-foreground"
+                        {filterDateFrom || filterDateTo ? (
+                          <span>
+                            {filterDateFrom ? format(filterDateFrom, "dd/MM/yyyy") : "..."} - {filterDateTo ? format(filterDateTo, "dd/MM/yyyy") : "..."}
+                          </span>
+                        ) : (
+                          <span>Selecione o período</span>
                         )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {filterDateTo ? format(filterDateTo, "PPP") : <span>Selecione</span>}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={filterDateTo}
-                        onSelect={setFilterDateTo}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
+                      <div className="p-4 space-y-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Data Início</Label>
+                          <Calendar
+                            mode="single"
+                            selected={filterDateFrom}
+                            onSelect={setFilterDateFrom}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Data Fim</Label>
+                          <Calendar
+                            mode="single"
+                            selected={filterDateTo}
+                            onSelect={setFilterDateTo}
+                            className="pointer-events-auto"
+                          />
+                        </div>
+                      </div>
                     </PopoverContent>
                   </Popover>
                 </div>
@@ -458,7 +450,7 @@ const Index = () => {
           />
 
           {/* Gráficos */}
-          <div className="grid gap-6 md:grid-cols-[2fr_1fr]">
+          <div className="grid gap-6 md:grid-cols-[1.5fr_1fr]">
             <SDRPerformanceChart 
               filterDateFrom={filterDateFrom}
               filterDateTo={filterDateTo}
