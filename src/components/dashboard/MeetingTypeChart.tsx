@@ -25,61 +25,15 @@ interface MeetingTypeChartProps {
 export const MeetingTypeChart = ({ filterDateFrom, filterDateTo, filterSdr, filterCloser }: MeetingTypeChartProps) => {
   const { getSdrName, getCloserName } = useUserMapping();
   const { data: meetings, isLoading } = useQuery({
-    queryKey: ["meetings-type-data", filterDateFrom?.toISOString(), filterDateTo?.toISOString(), filterSdr, filterCloser],
+    queryKey: ["meetings-data-type"],
     queryFn: async () => {
-      // Construir SQL dinâmico com filtros
-      let query = 'SELECT tipo_reuniao, sdr, closer, dia_reuniao FROM reunioes_comercial';
-      const whereClauses: string[] = [];
-      const params: any[] = [];
-      let paramIndex = 1;
-
-      // Filtro de Closer
-      if (filterCloser && filterCloser !== "all") {
-        const closerName = getCloserName(filterCloser);
-        whereClauses.push(`(LOWER(TRIM(closer)) = LOWER(TRIM($${paramIndex})) OR LOWER(TRIM(closer)) = LOWER(TRIM($${paramIndex + 1})))`);
-        params.push(filterCloser, closerName);
-        paramIndex += 2;
-      }
-
-      // Filtro de SDR
-      if (filterSdr && filterSdr !== "all") {
-        const sdrName = getSdrName(filterSdr);
-        whereClauses.push(`(LOWER(TRIM(sdr)) = LOWER(TRIM($${paramIndex})) OR LOWER(TRIM(sdr)) = LOWER(TRIM($${paramIndex + 1})))`);
-        params.push(filterSdr, sdrName);
-        paramIndex += 2;
-      }
-
-      // Filtro de data
-      if (filterDateFrom && filterDateTo) {
-        const dateFrom = filterDateFrom.toISOString().split('T')[0];
-        const dateTo = filterDateTo.toISOString().split('T')[0];
-        whereClauses.push(`to_date(dia_reuniao, 'DD/MM/YYYY') BETWEEN $${paramIndex}::date AND $${paramIndex + 1}::date`);
-        params.push(dateFrom, dateTo);
-        paramIndex += 2;
-      } else if (filterDateFrom) {
-        const dateFrom = filterDateFrom.toISOString().split('T')[0];
-        whereClauses.push(`to_date(dia_reuniao, 'DD/MM/YYYY') >= $${paramIndex}::date`);
-        params.push(dateFrom);
-        paramIndex += 1;
-      } else if (filterDateTo) {
-        const dateTo = filterDateTo.toISOString().split('T')[0];
-        whereClauses.push(`to_date(dia_reuniao, 'DD/MM/YYYY') <= $${paramIndex}::date`);
-        params.push(dateTo);
-        paramIndex += 1;
-      }
-
-      if (whereClauses.length > 0) {
-        query += ' WHERE ' + whereClauses.join(' AND ');
-      }
-
       const response = await fetch(`${SUPABASE_URL}/functions/v1/external-db-query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          query,
-          params,
+          query: 'SELECT tipo_reuniao, sdr, closer, dia_reuniao FROM reunioes_comercial',
         }),
       });
 
@@ -93,7 +47,50 @@ export const MeetingTypeChart = ({ filterDateFrom, filterDateTo, filterSdr, filt
     refetchInterval: 30000,
   });
 
-  const filteredMeetings = meetings;
+  const normalize = (s: string | undefined | null) => (s ? s.toLowerCase().trim() : "");
+  const filteredMeetings = meetings?.filter((m) => {
+    // Filtro de data
+    if (filterDateFrom || filterDateTo) {
+      try {
+        const meetingDate = parse(m.dia_reuniao, 'dd/MM/yyyy', new Date());
+        if (filterDateFrom && filterDateTo) {
+          if (!isWithinInterval(meetingDate, { start: filterDateFrom, end: filterDateTo })) {
+            return false;
+          }
+        } else if (filterDateFrom) {
+          if (meetingDate < filterDateFrom) return false;
+        } else if (filterDateTo) {
+          if (meetingDate > filterDateTo) return false;
+        }
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // Filtro de SDR (coluna sdr)
+    if (filterSdr && filterSdr !== "all") {
+      const mSdr = normalize(m.sdr);
+      const sel = normalize(filterSdr);
+      const mSdrName = normalize(getSdrName(m.sdr));
+      const selName = normalize(getSdrName(filterSdr));
+      if (!(mSdr === sel || mSdrName === sel || mSdrName === selName)) {
+        return false;
+      }
+    }
+
+    // Filtro de Closer (coluna closer)
+    if (filterCloser && filterCloser !== "all") {
+      const mCloser = normalize(m.closer);
+      const sel = normalize(filterCloser);
+      const mCloserName = normalize(getCloserName(m.closer));
+      const selName = normalize(getCloserName(filterCloser));
+      if (!(mCloser === sel || mCloserName === sel || mCloserName === selName)) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 
   if (isLoading || !filteredMeetings) {
     return (
