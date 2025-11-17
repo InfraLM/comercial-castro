@@ -25,13 +25,24 @@ interface MeetingTypeChartProps {
 export const MeetingTypeChart = ({ filterDateFrom, filterDateTo, filterSdr, filterCloser }: MeetingTypeChartProps) => {
   const { getSdrName, getCloserName } = useUserMapping();
   const { data: meetings, isLoading } = useQuery({
-    queryKey: ["meetings-data-type"],
+    queryKey: ["meetings-data-type", filterCloser || "all"],
     queryFn: async () => {
+      if (filterCloser && filterCloser !== "all") {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/meetings-by-closer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ closer: filterCloser }),
+        });
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error || 'Falha ao buscar dados por closer');
+        }
+        return result.data as MeetingData[];
+      }
+
       const response = await fetch(`${SUPABASE_URL}/functions/v1/external-db-query`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: 'SELECT tipo_reuniao, sdr, closer, dia_reuniao FROM reunioes_comercial',
         }),
