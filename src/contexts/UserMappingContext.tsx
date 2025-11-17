@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface UserMapping {
   [email: string]: string; // email -> nome
@@ -13,79 +15,166 @@ interface UserMappingContextType {
   removeCloserMapping: (email: string) => void;
   getSdrName: (email: string) => string;
   getCloserName: (email: string) => string;
+  isLoading: boolean;
 }
 
 const UserMappingContext = createContext<UserMappingContextType | undefined>(undefined);
 
 export const UserMappingProvider = ({ children }: { children: ReactNode }) => {
-  const [sdrMapping, setSdrMapping] = useState<UserMapping>(() => {
-    try {
-      const saved = localStorage.getItem("sdrMapping");
-      console.log("📦 Loading SDR mapping from localStorage:", saved);
-      const parsed = saved ? JSON.parse(saved) : {};
-      console.log("✅ SDR mapping loaded:", parsed);
-      return parsed;
-    } catch (error) {
-      console.error("❌ Error loading SDR mapping:", error);
-      return {};
-    }
-  });
+  const [sdrMapping, setSdrMapping] = useState<UserMapping>({});
+  const [closerMapping, setCloserMapping] = useState<UserMapping>({});
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [closerMapping, setCloserMapping] = useState<UserMapping>(() => {
-    try {
-      const saved = localStorage.getItem("closerMapping");
-      console.log("📦 Loading Closer mapping from localStorage:", saved);
-      const parsed = saved ? JSON.parse(saved) : {};
-      console.log("✅ Closer mapping loaded:", parsed);
-      return parsed;
-    } catch (error) {
-      console.error("❌ Error loading Closer mapping:", error);
-      return {};
-    }
-  });
-
+  // Load mappings from database on mount
   useEffect(() => {
+    loadMappingsFromDB();
+  }, []);
+
+  const loadMappingsFromDB = async () => {
     try {
-      const stringified = JSON.stringify(sdrMapping);
-      localStorage.setItem("sdrMapping", stringified);
-      console.log("💾 SDR mapping saved to localStorage:", stringified);
-    } catch (error) {
-      console.error("❌ Error saving SDR mapping:", error);
-    }
-  }, [sdrMapping]);
+      console.log("📦 Loading mappings from database...");
+      
+      const { data, error } = await supabase
+        .from("user_mappings")
+        .select("*");
 
-  useEffect(() => {
+      if (error) {
+        console.error("❌ Error loading mappings from database:", error);
+        toast.error("Erro ao carregar mapeamentos do banco");
+        return;
+      }
+
+      const sdrMap: UserMapping = {};
+      const closerMap: UserMapping = {};
+
+      data?.forEach((mapping) => {
+        if (mapping.role === "sdr") {
+          sdrMap[mapping.email] = mapping.name;
+        } else if (mapping.role === "closer") {
+          closerMap[mapping.email] = mapping.name;
+        }
+      });
+
+      setSdrMapping(sdrMap);
+      setCloserMapping(closerMap);
+      console.log("✅ Mappings loaded from database:", { sdrMap, closerMap });
+      
+    } catch (error) {
+      console.error("❌ Error loading mappings:", error);
+      toast.error("Erro ao carregar mapeamentos");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateSdrMapping = async (email: string, name: string) => {
     try {
-      const stringified = JSON.stringify(closerMapping);
-      localStorage.setItem("closerMapping", stringified);
-      console.log("💾 Closer mapping saved to localStorage:", stringified);
+      console.log("💾 Saving SDR mapping to database:", { email, name });
+      
+      const { error } = await supabase
+        .from("user_mappings")
+        .upsert(
+          { email, name, role: "sdr" },
+          { onConflict: "email,role" }
+        );
+
+      if (error) {
+        console.error("❌ Error saving SDR mapping:", error);
+        toast.error("Erro ao salvar mapeamento SDR");
+        return;
+      }
+
+      setSdrMapping(prev => ({ ...prev, [email]: name }));
+      console.log("✅ SDR mapping saved successfully");
+      toast.success("Mapeamento SDR salvo com sucesso");
     } catch (error) {
-      console.error("❌ Error saving Closer mapping:", error);
+      console.error("❌ Error updating SDR mapping:", error);
+      toast.error("Erro ao salvar mapeamento SDR");
     }
-  }, [closerMapping]);
-
-  const updateSdrMapping = (email: string, name: string) => {
-    setSdrMapping(prev => ({ ...prev, [email]: name }));
   };
 
-  const updateCloserMapping = (email: string, name: string) => {
-    setCloserMapping(prev => ({ ...prev, [email]: name }));
+  const updateCloserMapping = async (email: string, name: string) => {
+    try {
+      console.log("💾 Saving Closer mapping to database:", { email, name });
+      
+      const { error } = await supabase
+        .from("user_mappings")
+        .upsert(
+          { email, name, role: "closer" },
+          { onConflict: "email,role" }
+        );
+
+      if (error) {
+        console.error("❌ Error saving Closer mapping:", error);
+        toast.error("Erro ao salvar mapeamento Closer");
+        return;
+      }
+
+      setCloserMapping(prev => ({ ...prev, [email]: name }));
+      console.log("✅ Closer mapping saved successfully");
+      toast.success("Mapeamento Closer salvo com sucesso");
+    } catch (error) {
+      console.error("❌ Error updating Closer mapping:", error);
+      toast.error("Erro ao salvar mapeamento Closer");
+    }
   };
 
-  const removeSdrMapping = (email: string) => {
-    setSdrMapping(prev => {
-      const newMapping = { ...prev };
-      delete newMapping[email];
-      return newMapping;
-    });
+  const removeSdrMapping = async (email: string) => {
+    try {
+      console.log("🗑️ Removing SDR mapping from database:", email);
+      
+      const { error } = await supabase
+        .from("user_mappings")
+        .delete()
+        .eq("email", email)
+        .eq("role", "sdr");
+
+      if (error) {
+        console.error("❌ Error removing SDR mapping:", error);
+        toast.error("Erro ao remover mapeamento SDR");
+        return;
+      }
+
+      setSdrMapping(prev => {
+        const newMapping = { ...prev };
+        delete newMapping[email];
+        return newMapping;
+      });
+      console.log("✅ SDR mapping removed successfully");
+      toast.success("Mapeamento SDR removido com sucesso");
+    } catch (error) {
+      console.error("❌ Error removing SDR mapping:", error);
+      toast.error("Erro ao remover mapeamento SDR");
+    }
   };
 
-  const removeCloserMapping = (email: string) => {
-    setCloserMapping(prev => {
-      const newMapping = { ...prev };
-      delete newMapping[email];
-      return newMapping;
-    });
+  const removeCloserMapping = async (email: string) => {
+    try {
+      console.log("🗑️ Removing Closer mapping from database:", email);
+      
+      const { error } = await supabase
+        .from("user_mappings")
+        .delete()
+        .eq("email", email)
+        .eq("role", "closer");
+
+      if (error) {
+        console.error("❌ Error removing Closer mapping:", error);
+        toast.error("Erro ao remover mapeamento Closer");
+        return;
+      }
+
+      setCloserMapping(prev => {
+        const newMapping = { ...prev };
+        delete newMapping[email];
+        return newMapping;
+      });
+      console.log("✅ Closer mapping removed successfully");
+      toast.success("Mapeamento Closer removido com sucesso");
+    } catch (error) {
+      console.error("❌ Error removing Closer mapping:", error);
+      toast.error("Erro ao remover mapeamento Closer");
+    }
   };
 
   const getSdrName = (email: string) => {
@@ -111,6 +200,7 @@ export const UserMappingProvider = ({ children }: { children: ReactNode }) => {
         removeCloserMapping,
         getSdrName,
         getCloserName,
+        isLoading,
       }}
     >
       {children}

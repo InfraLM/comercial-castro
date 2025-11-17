@@ -22,26 +22,24 @@ export const UserMappingSection = () => {
   const [newCloserEmail, setNewCloserEmail] = useState("");
   const [newCloserName, setNewCloserName] = useState("");
 
-  const handleAddSdr = () => {
+  const handleAddSdr = async () => {
     if (!newSdrEmail.trim() || !newSdrName.trim()) {
       toast.error("Preencha email e nome do SDR");
       return;
     }
-    updateSdrMapping(newSdrEmail.trim(), newSdrName.trim());
+    await updateSdrMapping(newSdrEmail.trim(), newSdrName.trim());
     setNewSdrEmail("");
     setNewSdrName("");
-    toast.success("SDR adicionado com sucesso");
   };
 
-  const handleAddCloser = () => {
+  const handleAddCloser = async () => {
     if (!newCloserEmail.trim() || !newCloserName.trim()) {
       toast.error("Preencha email e nome do Closer");
       return;
     }
-    updateCloserMapping(newCloserEmail.trim(), newCloserName.trim());
+    await updateCloserMapping(newCloserEmail.trim(), newCloserName.trim());
     setNewCloserEmail("");
     setNewCloserName("");
-    toast.success("Closer adicionado com sucesso");
   };
 
   return (
@@ -91,10 +89,7 @@ export const UserMappingSection = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => {
-                        removeSdrMapping(email);
-                        toast.success("SDR removido");
-                      }}
+                      onClick={() => removeSdrMapping(email)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -151,10 +146,7 @@ export const UserMappingSection = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => {
-                        removeCloserMapping(email);
-                        toast.success("Closer removido");
-                      }}
+                      onClick={() => removeCloserMapping(email)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
