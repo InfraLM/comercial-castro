@@ -2,15 +2,25 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useUserMapping } from "@/contexts/UserMappingContext";
+import { parse, isWithinInterval } from "date-fns";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 interface MeetingData {
   sdr: string;
+  closer: string;
   situacao: string;
+  dia_reuniao: string;
 }
 
-export const SDRPerformanceChart = () => {
+interface SDRPerformanceChartProps {
+  filterDateFrom?: Date;
+  filterDateTo?: Date;
+  filterSdr?: string;
+  filterCloser?: string;
+}
+
+export const SDRPerformanceChart = ({ filterDateFrom, filterDateTo, filterSdr, filterCloser }: SDRPerformanceChartProps) => {
   const { getSdrName } = useUserMapping();
   
   const { data: meetings, isLoading } = useQuery({
@@ -22,7 +32,7 @@ export const SDRPerformanceChart = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          query: 'SELECT sdr, situacao FROM reunioes_comercial',
+          query: 'SELECT sdr, closer, situacao, dia_reuniao FROM reunioes_comercial',
         }),
       });
 
@@ -36,7 +46,39 @@ export const SDRPerformanceChart = () => {
     refetchInterval: 30000,
   });
 
-  if (isLoading || !meetings) {
+  const filteredMeetings = meetings?.filter((m) => {
+    // Filtro de data
+    if (filterDateFrom || filterDateTo) {
+      try {
+        const meetingDate = parse(m.dia_reuniao, 'dd/MM/yyyy', new Date());
+        if (filterDateFrom && filterDateTo) {
+          if (!isWithinInterval(meetingDate, { start: filterDateFrom, end: filterDateTo })) {
+            return false;
+          }
+        } else if (filterDateFrom) {
+          if (meetingDate < filterDateFrom) return false;
+        } else if (filterDateTo) {
+          if (meetingDate > filterDateTo) return false;
+        }
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // Filtro de SDR
+    if (filterSdr && filterSdr !== "all" && m.sdr !== filterSdr) {
+      return false;
+    }
+
+    // Filtro de Closer
+    if (filterCloser && filterCloser !== "all" && m.closer !== filterCloser) {
+      return false;
+    }
+
+    return true;
+  });
+
+  if (isLoading || !filteredMeetings) {
     return (
       <Card>
         <CardHeader>
@@ -51,7 +93,7 @@ export const SDRPerformanceChart = () => {
 
   const sdrStats: Record<string, { Show: number; "No Show": number; total: number }> = {};
 
-  meetings.forEach((meeting) => {
+  filteredMeetings.forEach((meeting) => {
     const sdrName = getSdrName(meeting.sdr);
     if (!sdrStats[sdrName]) {
       sdrStats[sdrName] = { Show: 0, "No Show": 0, total: 0 };
@@ -81,10 +123,17 @@ export const SDRPerformanceChart = () => {
         <CardTitle>Performance por SDR</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={350}>
-          <BarChart data={chartData}>
+        <ResponsiveContainer width="100%" height={400}>
+          <BarChart data={chartData} margin={{ bottom: 60 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis dataKey="name" className="text-xs" />
+            <XAxis 
+              dataKey="name" 
+              angle={-45}
+              textAnchor="end"
+              height={80}
+              interval={0}
+              style={{ fontSize: '12px' }}
+            />
             <YAxis />
             <Tooltip 
               contentStyle={{ 

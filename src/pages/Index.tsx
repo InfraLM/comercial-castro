@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { CalendarIcon, Plus } from "lucide-react";
+import { CalendarIcon, Plus, X } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { NavLink } from "@/components/NavLink";
@@ -18,6 +18,7 @@ import { MeetingKPIs } from "@/components/dashboard/MeetingKPIs";
 import { SDRPerformanceChart } from "@/components/dashboard/SDRPerformanceChart";
 import { SDRPerformanceTable } from "@/components/dashboard/SDRPerformanceTable";
 import { MeetingTypeChart } from "@/components/dashboard/MeetingTypeChart";
+import { Badge } from "@/components/ui/badge";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -31,6 +32,12 @@ const Index = () => {
   const [email, setEmail] = useState<string>("");
   const [diaReuniao, setDiaReuniao] = useState<Date | undefined>(undefined);
   const [situacao, setSituacao] = useState<string>("");
+  
+  // Estados para os filtros
+  const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(undefined);
+  const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(undefined);
+  const [filterSdr, setFilterSdr] = useState<string>("");
+  const [filterCloser, setFilterCloser] = useState<string>("");
 
   const insertMutation = useMutation({
     mutationFn: async (data: Record<string, any>) => {
@@ -280,9 +287,161 @@ const Index = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground text-center py-8">
+            <p className="text-muted-foreground text-center py-8 mb-6">
               Clique em "Registrar Reunião" para adicionar uma nova reunião
             </p>
+            
+            {/* Filtros */}
+            <div className="border-t pt-6">
+              <h3 className="text-lg font-semibold mb-4">Filtros</h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {/* Filtro de Data Início */}
+                <div className="space-y-2">
+                  <Label>Data Início</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !filterDateFrom && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {filterDateFrom ? format(filterDateFrom, "PPP") : <span>Selecione</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={filterDateFrom}
+                        onSelect={setFilterDateFrom}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Filtro de Data Fim */}
+                <div className="space-y-2">
+                  <Label>Data Fim</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !filterDateTo && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {filterDateTo ? format(filterDateTo, "PPP") : <span>Selecione</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={filterDateTo}
+                        onSelect={setFilterDateTo}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Filtro de SDR */}
+                <div className="space-y-2">
+                  <Label>SDR</Label>
+                  <Select value={filterSdr} onValueChange={setFilterSdr}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todos os SDRs" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os SDRs</SelectItem>
+                      {config.sdrOptions.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Filtro de Closer */}
+                <div className="space-y-2">
+                  <Label>Closer</Label>
+                  <Select value={filterCloser} onValueChange={setFilterCloser}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todos os Closers" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os Closers</SelectItem>
+                      {config.closersOptions.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Badges de filtros ativos */}
+              {(filterDateFrom || filterDateTo || (filterSdr && filterSdr !== "all") || (filterCloser && filterCloser !== "all")) && (
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {filterDateFrom && (
+                    <Badge variant="secondary" className="gap-1">
+                      Início: {format(filterDateFrom, "dd/MM/yyyy")}
+                      <X 
+                        className="h-3 w-3 cursor-pointer" 
+                        onClick={() => setFilterDateFrom(undefined)}
+                      />
+                    </Badge>
+                  )}
+                  {filterDateTo && (
+                    <Badge variant="secondary" className="gap-1">
+                      Fim: {format(filterDateTo, "dd/MM/yyyy")}
+                      <X 
+                        className="h-3 w-3 cursor-pointer" 
+                        onClick={() => setFilterDateTo(undefined)}
+                      />
+                    </Badge>
+                  )}
+                  {filterSdr && filterSdr !== "all" && (
+                    <Badge variant="secondary" className="gap-1">
+                      SDR: {filterSdr}
+                      <X 
+                        className="h-3 w-3 cursor-pointer" 
+                        onClick={() => setFilterSdr("")}
+                      />
+                    </Badge>
+                  )}
+                  {filterCloser && filterCloser !== "all" && (
+                    <Badge variant="secondary" className="gap-1">
+                      Closer: {filterCloser}
+                      <X 
+                        className="h-3 w-3 cursor-pointer" 
+                        onClick={() => setFilterCloser("")}
+                      />
+                    </Badge>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => {
+                      setFilterDateFrom(undefined);
+                      setFilterDateTo(undefined);
+                      setFilterSdr("");
+                      setFilterCloser("");
+                    }}
+                  >
+                    Limpar todos
+                  </Button>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -291,16 +450,36 @@ const Index = () => {
           <h2 className="text-2xl font-bold">Dashboard de Performance</h2>
           
           {/* KPIs Cards */}
-          <MeetingKPIs />
+          <MeetingKPIs 
+            filterDateFrom={filterDateFrom}
+            filterDateTo={filterDateTo}
+            filterSdr={filterSdr}
+            filterCloser={filterCloser}
+          />
 
           {/* Gráficos */}
-          <div className="grid gap-6 md:grid-cols-2">
-            <SDRPerformanceChart />
-            <MeetingTypeChart />
+          <div className="grid gap-6 md:grid-cols-[2fr_1fr]">
+            <SDRPerformanceChart 
+              filterDateFrom={filterDateFrom}
+              filterDateTo={filterDateTo}
+              filterSdr={filterSdr}
+              filterCloser={filterCloser}
+            />
+            <MeetingTypeChart 
+              filterDateFrom={filterDateFrom}
+              filterDateTo={filterDateTo}
+              filterSdr={filterSdr}
+              filterCloser={filterCloser}
+            />
           </div>
 
           {/* Tabela Detalhada */}
-          <SDRPerformanceTable />
+          <SDRPerformanceTable 
+            filterDateFrom={filterDateFrom}
+            filterDateTo={filterDateTo}
+            filterSdr={filterSdr}
+            filterCloser={filterCloser}
+          />
         </div>
       </div>
     </div>
