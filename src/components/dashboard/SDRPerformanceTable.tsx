@@ -28,15 +28,61 @@ export const SDRPerformanceTable = ({ filterDateFrom, filterDateTo, filterSdr, f
   const { getSdrName, getCloserName } = useUserMapping();
   
   const { data: meetings, isLoading } = useQuery({
-    queryKey: ["meetings-data"],
+    queryKey: ["meetings-data-table", filterDateFrom?.toISOString(), filterDateTo?.toISOString(), filterSdr, filterCloser],
     queryFn: async () => {
+      // Construir SQL dinâmico com filtros
+      let query = 'SELECT sdr, closer, situacao, nome, dia_reuniao, tipo_reuniao FROM reunioes_comercial';
+      const whereClauses: string[] = [];
+      const params: any[] = [];
+      let paramIndex = 1;
+
+      // Filtro de Closer
+      if (filterCloser && filterCloser !== "all") {
+        const closerName = getCloserName(filterCloser);
+        whereClauses.push(`(LOWER(TRIM(closer)) = LOWER(TRIM($${paramIndex})) OR LOWER(TRIM(closer)) = LOWER(TRIM($${paramIndex + 1})))`);
+        params.push(filterCloser, closerName);
+        paramIndex += 2;
+      }
+
+      // Filtro de SDR
+      if (filterSdr && filterSdr !== "all") {
+        const sdrName = getSdrName(filterSdr);
+        whereClauses.push(`(LOWER(TRIM(sdr)) = LOWER(TRIM($${paramIndex})) OR LOWER(TRIM(sdr)) = LOWER(TRIM($${paramIndex + 1})))`);
+        params.push(filterSdr, sdrName);
+        paramIndex += 2;
+      }
+
+      // Filtro de data
+      if (filterDateFrom && filterDateTo) {
+        const dateFrom = filterDateFrom.toISOString().split('T')[0];
+        const dateTo = filterDateTo.toISOString().split('T')[0];
+        whereClauses.push(`to_date(dia_reuniao, 'DD/MM/YYYY') BETWEEN $${paramIndex}::date AND $${paramIndex + 1}::date`);
+        params.push(dateFrom, dateTo);
+        paramIndex += 2;
+      } else if (filterDateFrom) {
+        const dateFrom = filterDateFrom.toISOString().split('T')[0];
+        whereClauses.push(`to_date(dia_reuniao, 'DD/MM/YYYY') >= $${paramIndex}::date`);
+        params.push(dateFrom);
+        paramIndex += 1;
+      } else if (filterDateTo) {
+        const dateTo = filterDateTo.toISOString().split('T')[0];
+        whereClauses.push(`to_date(dia_reuniao, 'DD/MM/YYYY') <= $${paramIndex}::date`);
+        params.push(dateTo);
+        paramIndex += 1;
+      }
+
+      if (whereClauses.length > 0) {
+        query += ' WHERE ' + whereClauses.join(' AND ');
+      }
+
       const response = await fetch(`${SUPABASE_URL}/functions/v1/external-db-query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          query: 'SELECT sdr, closer, situacao, nome, dia_reuniao, tipo_reuniao FROM reunioes_comercial',
+          query,
+          params,
         }),
       });
 
@@ -50,37 +96,7 @@ export const SDRPerformanceTable = ({ filterDateFrom, filterDateTo, filterSdr, f
     refetchInterval: 30000,
   });
 
-  const filteredMeetings = meetings?.filter((m) => {
-    // Filtro de data
-    if (filterDateFrom || filterDateTo) {
-      try {
-        const meetingDate = parse(m.dia_reuniao, 'dd/MM/yyyy', new Date());
-        if (filterDateFrom && filterDateTo) {
-          if (!isWithinInterval(meetingDate, { start: filterDateFrom, end: filterDateTo })) {
-            return false;
-          }
-        } else if (filterDateFrom) {
-          if (meetingDate < filterDateFrom) return false;
-        } else if (filterDateTo) {
-          if (meetingDate > filterDateTo) return false;
-        }
-      } catch (e) {
-        return false;
-      }
-    }
-
-    // Filtro de SDR
-    if (filterSdr && filterSdr !== "all" && !(m.sdr === filterSdr || getSdrName(m.sdr) === filterSdr)) {
-      return false;
-    }
-
-    // Filtro de Closer
-    if (filterCloser && filterCloser !== "all" && !(m.closer === filterCloser || getCloserName(m.closer) === getCloserName(filterCloser))) {
-      return false;
-    }
-
-    return true;
-  });
+  const filteredMeetings = meetings;
 
   if (isLoading || !filteredMeetings) {
     return (
