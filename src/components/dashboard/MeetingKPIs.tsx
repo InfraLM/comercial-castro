@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Calendar, TrendingUp, TrendingDown } from "lucide-react";
 import { parse, isWithinInterval } from "date-fns";
+import { useUserMapping } from "@/contexts/UserMappingContext";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -20,8 +21,9 @@ interface MeetingKPIsProps {
 }
 
 export const MeetingKPIs = ({ filterDateFrom, filterDateTo, filterSdr, filterCloser }: MeetingKPIsProps) => {
+  const { getSdrName, getCloserName } = useUserMapping();
   const { data: meetings, isLoading } = useQuery({
-    queryKey: ["meetings-data"],
+    queryKey: ["meetings-data-kpis"],
     queryFn: async () => {
       const response = await fetch(`${SUPABASE_URL}/functions/v1/external-db-query`, {
         method: 'POST',
@@ -63,12 +65,12 @@ export const MeetingKPIs = ({ filterDateFrom, filterDateTo, filterSdr, filterClo
     }
 
     // Filtro de SDR
-    if (filterSdr && filterSdr !== "all" && m.sdr !== filterSdr) {
+    if (filterSdr && filterSdr !== "all" && !(m.sdr === filterSdr || getSdrName(m.sdr) === filterSdr)) {
       return false;
     }
 
     // Filtro de Closer
-    if (filterCloser && filterCloser !== "all" && m.closer !== filterCloser) {
+    if (filterCloser && filterCloser !== "all" && !(m.closer === filterCloser || getCloserName(m.closer) === filterCloser)) {
       return false;
     }
 
