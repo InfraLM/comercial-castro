@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.meetings-by-closer]
 verify_jwt = false
+
+[functions.delete-meeting]
+verify_jwt = false
