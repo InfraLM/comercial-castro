@@ -1,10 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useUserMapping } from "@/contexts/UserMappingContext";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { parse, isWithinInterval } from "date-fns";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -26,6 +29,34 @@ interface SDRPerformanceTableProps {
 
 export const SDRPerformanceTable = ({ filterDateFrom, filterDateTo, filterSdr, filterCloser }: SDRPerformanceTableProps) => {
   const { getSdrName, getCloserName } = useUserMapping();
+  const queryClient = useQueryClient();
+
+  const handleDeleteMeeting = async (meeting: MeetingData) => {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/delete-meeting`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sdr: meeting.sdr,
+          closer: meeting.closer,
+          nome: meeting.nome,
+          dia_reuniao: meeting.dia_reuniao,
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Falha ao excluir reunião');
+      }
+
+      toast.success('Reunião excluída com sucesso');
+      queryClient.invalidateQueries({ queryKey: ["meetings-data-table"] });
+    } catch (error) {
+      console.error('Error deleting meeting:', error);
+      toast.error('Erro ao excluir reunião');
+    }
+  };
   
   const { data: meetings, isLoading } = useQuery({
     queryKey: ["meetings-data-table", filterCloser || "all"],
@@ -160,6 +191,7 @@ export const SDRPerformanceTable = ({ filterDateFrom, filterDateTo, filterSdr, f
       noShow: data.noShow,
       total: data.total,
       showRate: data.total > 0 ? ((data.show / data.total) * 100).toFixed(1) : "0",
+      noShowRate: data.total > 0 ? ((data.noShow / data.total) * 100).toFixed(1) : "0",
       meetings: data.meetings,
     }))
     .sort((a, b) => b.total - a.total);
@@ -184,6 +216,7 @@ export const SDRPerformanceTable = ({ filterDateFrom, filterDateTo, filterSdr, f
               <TableHead className="text-center">Show</TableHead>
               <TableHead className="text-center">No Show</TableHead>
               <TableHead className="text-center">Taxa de Show</TableHead>
+              <TableHead className="text-center">Taxa de No Show</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -213,6 +246,11 @@ export const SDRPerformanceTable = ({ filterDateFrom, filterDateTo, filterSdr, f
                           {row.showRate}%
                         </span>
                       </TableCell>
+                      <TableCell className="text-center">
+                        <span className="inline-flex items-center justify-center px-3 py-1 rounded-full font-semibold text-sm bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                          {row.noShowRate}%
+                        </span>
+                      </TableCell>
                     </TableRow>
                   </HoverCardTrigger>
                   <HoverCardContent 
@@ -231,6 +269,7 @@ export const SDRPerformanceTable = ({ filterDateFrom, filterDateTo, filterSdr, f
                               <TableHead className="min-w-[100px]">Data</TableHead>
                               <TableHead className="min-w-[120px]">Tipo</TableHead>
                               <TableHead className="min-w-[100px]">Situação</TableHead>
+                              <TableHead className="w-[60px]">Ações</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -250,6 +289,16 @@ export const SDRPerformanceTable = ({ filterDateFrom, filterDateTo, filterSdr, f
                                   >
                                     {meeting.situacao}
                                   </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={() => handleDeleteMeeting(meeting)}
+                                  >
+                                    <Trash2 className="h-3 w-3 text-destructive" />
+                                  </Button>
                                 </TableCell>
                               </TableRow>
                             ))}
