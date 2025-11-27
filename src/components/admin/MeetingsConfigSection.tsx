@@ -5,16 +5,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Plus, X, RotateCcw } from "lucide-react";
+import { Plus, X, RotateCcw, Settings2, ListChecks, Users2 } from "lucide-react";
 import { useMeetingsConfig } from "@/contexts/MeetingsConfigContext";
+import { useUserMapping } from "@/contexts/UserMappingContext";
 
 export const MeetingsConfigSection = () => {
   const { config, updateConfig, resetConfig } = useMeetingsConfig();
+  const { sdrMapping, closerMapping } = useUserMapping();
   const [newOption, setNewOption] = useState("");
-  const [activeSection, setActiveSection] = useState<"sdr" | "closers" | "tipo" | "situacao">("sdr");
 
-  const handleAddOption = (section: "sdrOptions" | "closersOptions" | "tipoReuniaoOptions" | "situacaoOptions") => {
+  const sdrUsers = Object.entries(sdrMapping).map(([email, name]) => ({ email, name }));
+  const closerUsers = Object.entries(closerMapping).map(([email, name]) => ({ email, name }));
+
+  const handleAddOption = (section: "tipoReuniaoOptions" | "situacaoOptions") => {
     if (!newOption.trim()) {
       toast.error("Digite uma opção válida");
       return;
@@ -29,16 +35,16 @@ export const MeetingsConfigSection = () => {
     options.push(newOption.trim());
     updateConfig({ [section]: options });
     setNewOption("");
-    toast.success("Opção adicionada com sucesso!");
+    toast.success("Opção adicionada!");
   };
 
   const handleRemoveOption = (
-    section: "sdrOptions" | "closersOptions" | "tipoReuniaoOptions" | "situacaoOptions",
+    section: "tipoReuniaoOptions" | "situacaoOptions",
     option: string
   ) => {
     const options = config[section].filter(o => o !== option);
     updateConfig({ [section]: options });
-    toast.success("Opção removida com sucesso!");
+    toast.success("Opção removida!");
   };
 
   const handleToggleField = (field: keyof typeof config.formFields) => {
@@ -50,187 +56,249 @@ export const MeetingsConfigSection = () => {
     });
   };
 
+  const handleAddSDRFromUser = (email: string, name: string) => {
+    if (config.sdrOptions.includes(name)) {
+      toast.error("SDR já está na lista");
+      return;
+    }
+    updateConfig({ sdrOptions: [...config.sdrOptions, name] });
+    toast.success(`${name} adicionado aos SDRs`);
+  };
+
+  const handleAddCloserFromUser = (email: string, name: string) => {
+    if (config.closersOptions.includes(name)) {
+      toast.error("Closer já está na lista");
+      return;
+    }
+    updateConfig({ closersOptions: [...config.closersOptions, name] });
+    toast.success(`${name} adicionado aos Closers`);
+  };
+
   const handleReset = () => {
     resetConfig();
-    toast.success("Configurações restauradas para o padrão!");
+    toast.success("Configurações restauradas!");
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Configuração de Reuniões</h2>
-          <p className="text-muted-foreground">Gerencie os campos e opções do formulário de reuniões</p>
+          <h2 className="text-2xl font-bold text-foreground">Configuração de Reuniões</h2>
+          <p className="text-muted-foreground">Personalize o formulário de reuniões</p>
         </div>
-        <Button variant="outline" onClick={handleReset}>
+        <Button variant="outline" onClick={handleReset} size="sm">
           <RotateCcw className="mr-2 h-4 w-4" />
-          Restaurar Padrão
+          Restaurar
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Campos do Formulário</CardTitle>
-          <CardDescription>Ative ou desative campos do formulário de registro</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {Object.entries(config.formFields).map(([field, enabled]) => (
-            <div key={field} className="flex items-center justify-between">
-              <Label htmlFor={field} className="capitalize">
-                {field === "sdr" ? "SDR" : 
-                 field === "closer" ? "Closer" :
-                 field === "tipoReuniao" ? "Tipo de Reunião" :
-                 field === "diaReuniao" ? "Data da Reunião" :
-                 field.charAt(0).toUpperCase() + field.slice(1)}
-              </Label>
-              <Switch
-                id={field}
-                checked={enabled}
-                onCheckedChange={() => handleToggleField(field as keyof typeof config.formFields)}
-              />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="fields" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsTrigger value="fields" className="gap-2">
+            <Settings2 className="h-4 w-4" />
+            Campos
+          </TabsTrigger>
+          <TabsTrigger value="users" className="gap-2">
+            <Users2 className="h-4 w-4" />
+            SDR & Closers
+          </TabsTrigger>
+          <TabsTrigger value="options" className="gap-2">
+            <ListChecks className="h-4 w-4" />
+            Opções
+          </TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Opções dos Campos</CardTitle>
-          <CardDescription>Adicione, edite ou remova opções dos campos de seleção</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            <div className="flex gap-2 border-b pb-4">
-              {[
-                { key: "sdr", label: "SDR" },
-                { key: "closers", label: "Closers" },
-                { key: "tipo", label: "Tipo de Reunião" },
-                { key: "situacao", label: "Situação" },
-              ].map((section) => (
-                <Button
-                  key={section.key}
-                  variant={activeSection === section.key ? "default" : "ghost"}
-                  onClick={() => setActiveSection(section.key as typeof activeSection)}
-                >
-                  {section.label}
-                </Button>
-              ))}
-            </div>
+        <TabsContent value="fields" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Campos do Formulário</CardTitle>
+              <CardDescription>Ative ou desative campos no formulário de registro</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Object.entries(config.formFields).map(([field, enabled]) => (
+                  <div key={field} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                    <Label htmlFor={field} className="font-medium">
+                      {field === "sdr" ? "SDR" : 
+                       field === "closer" ? "Closer" :
+                       field === "tipoReuniao" ? "Tipo de Reunião" :
+                       field === "diaReuniao" ? "Data da Reunião" :
+                       field.charAt(0).toUpperCase() + field.slice(1)}
+                    </Label>
+                    <Switch
+                      id={field}
+                      checked={enabled}
+                      onCheckedChange={() => handleToggleField(field as keyof typeof config.formFields)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            {activeSection === "sdr" && (
-              <div className="space-y-4">
-                <h3 className="font-semibold">Opções de SDR</h3>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Nova opção de SDR"
-                    value={newOption}
-                    onChange={(e) => setNewOption(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && handleAddOption("sdrOptions")}
-                  />
-                  <Button onClick={() => handleAddOption("sdrOptions")}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
+        <TabsContent value="users" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* SDR Selection */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">SDRs</CardTitle>
+                <CardDescription>Selecione SDRs dos usuários cadastrados</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {sdrUsers.length > 0 ? (
+                  <Select onValueChange={(value) => {
+                    const user = sdrUsers.find(u => u.email === value);
+                    if (user) handleAddSDRFromUser(user.email, user.name);
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Adicionar SDR da lista de usuários" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sdrUsers.map((user) => (
+                        <SelectItem key={user.email} value={user.email}>
+                          {user.name} ({user.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum SDR cadastrado em Usuários
+                  </p>
+                )}
+
                 <div className="flex flex-wrap gap-2">
                   {config.sdrOptions.map((option) => (
-                    <Badge key={option} variant="secondary" className="gap-2">
+                    <Badge key={option} variant="secondary" className="gap-1 px-3 py-1.5">
                       {option}
                       <X
-                        className="h-3 w-3 cursor-pointer hover:text-destructive"
-                        onClick={() => handleRemoveOption("sdrOptions", option)}
+                        className="h-3 w-3 cursor-pointer hover:text-destructive ml-1"
+                        onClick={() => {
+                          updateConfig({ sdrOptions: config.sdrOptions.filter(o => o !== option) });
+                        }}
                       />
                     </Badge>
                   ))}
                 </div>
-              </div>
-            )}
+              </CardContent>
+            </Card>
 
-            {activeSection === "closers" && (
-              <div className="space-y-4">
-                <h3 className="font-semibold">Opções de Closers</h3>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Nova opção de Closer"
-                    value={newOption}
-                    onChange={(e) => setNewOption(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && handleAddOption("closersOptions")}
-                  />
-                  <Button onClick={() => handleAddOption("closersOptions")}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
+            {/* Closers Selection */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Closers</CardTitle>
+                <CardDescription>Selecione Closers dos usuários cadastrados</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {closerUsers.length > 0 ? (
+                  <Select onValueChange={(value) => {
+                    const user = closerUsers.find(u => u.email === value);
+                    if (user) handleAddCloserFromUser(user.email, user.name);
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Adicionar Closer da lista de usuários" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {closerUsers.map((user) => (
+                        <SelectItem key={user.email} value={user.email}>
+                          {user.name} ({user.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum Closer cadastrado em Usuários
+                  </p>
+                )}
+
                 <div className="flex flex-wrap gap-2">
                   {config.closersOptions.map((option) => (
-                    <Badge key={option} variant="secondary" className="gap-2">
+                    <Badge key={option} variant="secondary" className="gap-1 px-3 py-1.5">
                       {option}
                       <X
-                        className="h-3 w-3 cursor-pointer hover:text-destructive"
-                        onClick={() => handleRemoveOption("closersOptions", option)}
+                        className="h-3 w-3 cursor-pointer hover:text-destructive ml-1"
+                        onClick={() => {
+                          updateConfig({ closersOptions: config.closersOptions.filter(o => o !== option) });
+                        }}
                       />
                     </Badge>
                   ))}
                 </div>
-              </div>
-            )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
-            {activeSection === "tipo" && (
-              <div className="space-y-4">
-                <h3 className="font-semibold">Opções de Tipo de Reunião</h3>
+        <TabsContent value="options" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Tipo de Reunião */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Tipos de Reunião</CardTitle>
+                <CardDescription>Gerencie os tipos de reunião disponíveis</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Nova opção de tipo"
+                    placeholder="Novo tipo de reunião"
                     value={newOption}
                     onChange={(e) => setNewOption(e.target.value)}
                     onKeyPress={(e) => e.key === "Enter" && handleAddOption("tipoReuniaoOptions")}
                   />
-                  <Button onClick={() => handleAddOption("tipoReuniaoOptions")}>
+                  <Button onClick={() => handleAddOption("tipoReuniaoOptions")} size="icon">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {config.tipoReuniaoOptions.map((option) => (
-                    <Badge key={option} variant="secondary" className="gap-2">
+                    <Badge key={option} variant="secondary" className="gap-1 px-3 py-1.5">
                       {option}
                       <X
-                        className="h-3 w-3 cursor-pointer hover:text-destructive"
+                        className="h-3 w-3 cursor-pointer hover:text-destructive ml-1"
                         onClick={() => handleRemoveOption("tipoReuniaoOptions", option)}
                       />
                     </Badge>
                   ))}
                 </div>
-              </div>
-            )}
+              </CardContent>
+            </Card>
 
-            {activeSection === "situacao" && (
-              <div className="space-y-4">
-                <h3 className="font-semibold">Opções de Situação</h3>
+            {/* Situação */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Situações</CardTitle>
+                <CardDescription>Gerencie as situações de reunião</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Nova opção de situação"
+                    placeholder="Nova situação"
                     value={newOption}
                     onChange={(e) => setNewOption(e.target.value)}
                     onKeyPress={(e) => e.key === "Enter" && handleAddOption("situacaoOptions")}
                   />
-                  <Button onClick={() => handleAddOption("situacaoOptions")}>
+                  <Button onClick={() => handleAddOption("situacaoOptions")} size="icon">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {config.situacaoOptions.map((option) => (
-                    <Badge key={option} variant="secondary" className="gap-2">
+                    <Badge key={option} variant="secondary" className="gap-1 px-3 py-1.5">
                       {option}
                       <X
-                        className="h-3 w-3 cursor-pointer hover:text-destructive"
+                        className="h-3 w-3 cursor-pointer hover:text-destructive ml-1"
                         onClick={() => handleRemoveOption("situacaoOptions", option)}
                       />
                     </Badge>
                   ))}
                 </div>
-              </div>
-            )}
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
