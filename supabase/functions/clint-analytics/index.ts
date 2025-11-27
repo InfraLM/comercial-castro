@@ -6,6 +6,21 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper to convert BigInt to Number in objects
+function convertBigIntToNumber(obj: unknown): unknown {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj === 'bigint') return Number(obj);
+  if (Array.isArray(obj)) return obj.map(convertBigIntToNumber);
+  if (typeof obj === 'object') {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      result[key] = convertBigIntToNumber(value);
+    }
+    return result;
+  }
+  return obj;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -27,13 +42,12 @@ serve(async (req) => {
     let result: { rows: unknown[] } = { rows: [] };
 
     if (type === "sdr_performance") {
-      // Cast varchar columns to integer for SUM
       const query = `
         SELECT 
           sdr,
-          SUM(CAST(NULLIF(ligacoes, '') AS INTEGER)) as total_ligacoes,
-          SUM(CAST(NULLIF(whatsap, '') AS INTEGER)) as total_whatsapp,
-          COUNT(*) as dias_trabalhados
+          COALESCE(SUM(CAST(NULLIF(ligacoes, '') AS INTEGER)), 0) as total_ligacoes,
+          COALESCE(SUM(CAST(NULLIF(whatsap, '') AS INTEGER)), 0) as total_whatsapp,
+          COUNT(*)::integer as dias_trabalhados
         FROM clint_sdr
         ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
         GROUP BY sdr
@@ -41,13 +55,12 @@ serve(async (req) => {
       `;
       result = await client.queryObject(query);
     } else if (type === "daily_metrics") {
-      // Cast varchar columns to integer
       const query = `
         SELECT 
           dia_registro,
-          CAST(NULLIF(leads_recebidos, '') AS INTEGER) as leads_recebidos,
-          CAST(NULLIF(prospeccao, '') AS INTEGER) as prospeccao,
-          CAST(NULLIF(conexao, '') AS INTEGER) as conexao
+          COALESCE(CAST(NULLIF(leads_recebidos, '') AS INTEGER), 0) as leads_recebidos,
+          COALESCE(CAST(NULLIF(prospeccao, '') AS INTEGER), 0) as prospeccao,
+          COALESCE(CAST(NULLIF(conexao, '') AS INTEGER), 0) as conexao
         FROM clint_basemae
         ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
         ORDER BY dia_registro DESC
@@ -59,8 +72,8 @@ serve(async (req) => {
         SELECT 
           dia_registro,
           sdr,
-          CAST(NULLIF(ligacoes, '') AS INTEGER) as ligacoes,
-          CAST(NULLIF(whatsap, '') AS INTEGER) as whatsap,
+          COALESCE(CAST(NULLIF(ligacoes, '') AS INTEGER), 0) as ligacoes,
+          COALESCE(CAST(NULLIF(whatsap, '') AS INTEGER), 0) as whatsap,
           tempo
         FROM clint_sdr
         ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
@@ -69,19 +82,18 @@ serve(async (req) => {
       `;
       result = await client.queryObject(query);
     } else if (type === "totals") {
-      // Cast varchar columns to integer for SUM
       const sdrQuery = `
         SELECT 
-          COALESCE(SUM(CAST(NULLIF(ligacoes, '') AS INTEGER)), 0) as total_ligacoes,
-          COALESCE(SUM(CAST(NULLIF(whatsap, '') AS INTEGER)), 0) as total_whatsapp
+          COALESCE(SUM(CAST(NULLIF(ligacoes, '') AS INTEGER)), 0)::integer as total_ligacoes,
+          COALESCE(SUM(CAST(NULLIF(whatsap, '') AS INTEGER)), 0)::integer as total_whatsapp
         FROM clint_sdr
         ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
       `;
       const basemaeQuery = `
         SELECT 
-          COALESCE(SUM(CAST(NULLIF(leads_recebidos, '') AS INTEGER)), 0) as total_leads,
-          COALESCE(SUM(CAST(NULLIF(prospeccao, '') AS INTEGER)), 0) as total_prospeccao,
-          COALESCE(SUM(CAST(NULLIF(conexao, '') AS INTEGER)), 0) as total_conexao
+          COALESCE(SUM(CAST(NULLIF(leads_recebidos, '') AS INTEGER)), 0)::integer as total_leads,
+          COALESCE(SUM(CAST(NULLIF(prospeccao, '') AS INTEGER)), 0)::integer as total_prospeccao,
+          COALESCE(SUM(CAST(NULLIF(conexao, '') AS INTEGER)), 0)::integer as total_conexao
         FROM clint_basemae
         ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
       `;
@@ -105,7 +117,10 @@ serve(async (req) => {
 
     await client.end();
 
-    return new Response(JSON.stringify({ data: result?.rows || [] }), {
+    // Convert any BigInt values to Number before serializing
+    const convertedRows = convertBigIntToNumber(result?.rows || []);
+
+    return new Response(JSON.stringify({ data: convertedRows }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
