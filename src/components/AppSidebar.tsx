@@ -1,4 +1,4 @@
-import { Home, Calendar, Settings } from "lucide-react";
+import { Home, Calendar, Settings, ClipboardList } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 
@@ -17,6 +17,7 @@ import {
 const items = [
   { title: "Home", url: "/", icon: Home },
   { title: "Reuniões", url: "/meetings", icon: Calendar },
+  { title: "Clint", url: "/clint", icon: ClipboardList },
   { title: "Administrador", url: "/admin", icon: Settings },
 ];
 
