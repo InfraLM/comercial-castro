@@ -27,25 +27,27 @@ serve(async (req) => {
     let result: { rows: unknown[] } = { rows: [] };
 
     if (type === "sdr_performance") {
+      // Cast varchar columns to integer for SUM
       const query = `
         SELECT 
           sdr,
-          SUM(ligacoes) as total_ligacoes,
-          SUM(whatsap) as total_whatsapp,
+          SUM(CAST(NULLIF(ligacoes, '') AS INTEGER)) as total_ligacoes,
+          SUM(CAST(NULLIF(whatsap, '') AS INTEGER)) as total_whatsapp,
           COUNT(*) as dias_trabalhados
         FROM clint_sdr
         ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
         GROUP BY sdr
-        ORDER BY total_ligacoes DESC
+        ORDER BY total_ligacoes DESC NULLS LAST
       `;
       result = await client.queryObject(query);
     } else if (type === "daily_metrics") {
+      // Cast varchar columns to integer
       const query = `
         SELECT 
           dia_registro,
-          leads_recebidos,
-          prospeccao,
-          conexao
+          CAST(NULLIF(leads_recebidos, '') AS INTEGER) as leads_recebidos,
+          CAST(NULLIF(prospeccao, '') AS INTEGER) as prospeccao,
+          CAST(NULLIF(conexao, '') AS INTEGER) as conexao
         FROM clint_basemae
         ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
         ORDER BY dia_registro DESC
@@ -57,8 +59,8 @@ serve(async (req) => {
         SELECT 
           dia_registro,
           sdr,
-          ligacoes,
-          whatsap,
+          CAST(NULLIF(ligacoes, '') AS INTEGER) as ligacoes,
+          CAST(NULLIF(whatsap, '') AS INTEGER) as whatsap,
           tempo
         FROM clint_sdr
         ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
@@ -67,18 +69,19 @@ serve(async (req) => {
       `;
       result = await client.queryObject(query);
     } else if (type === "totals") {
+      // Cast varchar columns to integer for SUM
       const sdrQuery = `
         SELECT 
-          COALESCE(SUM(ligacoes), 0) as total_ligacoes,
-          COALESCE(SUM(whatsap), 0) as total_whatsapp
+          COALESCE(SUM(CAST(NULLIF(ligacoes, '') AS INTEGER)), 0) as total_ligacoes,
+          COALESCE(SUM(CAST(NULLIF(whatsap, '') AS INTEGER)), 0) as total_whatsapp
         FROM clint_sdr
         ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
       `;
       const basemaeQuery = `
         SELECT 
-          COALESCE(SUM(leads_recebidos), 0) as total_leads,
-          COALESCE(SUM(prospeccao), 0) as total_prospeccao,
-          COALESCE(SUM(conexao), 0) as total_conexao
+          COALESCE(SUM(CAST(NULLIF(leads_recebidos, '') AS INTEGER)), 0) as total_leads,
+          COALESCE(SUM(CAST(NULLIF(prospeccao, '') AS INTEGER)), 0) as total_prospeccao,
+          COALESCE(SUM(CAST(NULLIF(conexao, '') AS INTEGER)), 0) as total_conexao
         FROM clint_basemae
         ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
       `;
