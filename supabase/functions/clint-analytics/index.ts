@@ -21,9 +21,16 @@ function convertBigIntToNumber(obj: unknown): unknown {
   return obj;
 }
 
-// SQL helper to safely cast any column to integer (handles empty strings, nulls, non-numeric)
-// Cast to text first to handle both varchar and numeric columns
-const safeInt = (col: string) => `COALESCE(NULLIF(REGEXP_REPLACE(TRIM(${col}::text), '[^0-9]', '', 'g'), '')::integer, 0)`;
+// SQL helper to safely convert any column to integer
+// Uses CASE to handle both integer and text columns
+const safeInt = (col: string) => `
+  CASE 
+    WHEN ${col} IS NULL THEN 0
+    WHEN ${col}::text = '' THEN 0
+    WHEN ${col}::text ~ '^[0-9]+$' THEN ${col}::text::integer
+    ELSE 0
+  END
+`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -49,8 +56,8 @@ serve(async (req) => {
       const query = `
         SELECT 
           sdr,
-          COALESCE(SUM(${safeInt('ligacoes')}), 0) as total_ligacoes,
-          COALESCE(SUM(${safeInt('whatsap')}), 0) as total_whatsapp,
+          COALESCE(SUM(${safeInt('ligacoes')}), 0)::integer as total_ligacoes,
+          COALESCE(SUM(${safeInt('whatsap')}), 0)::integer as total_whatsapp,
           COUNT(*)::integer as dias_trabalhados
         FROM clint_sdr
         ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
