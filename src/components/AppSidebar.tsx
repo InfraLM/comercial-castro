@@ -1,4 +1,4 @@
-import { Home, Calendar, Settings, ClipboardList } from "lucide-react";
+import { Home, Calendar, ClipboardList, Settings } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 
@@ -11,14 +11,14 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const items = [
+const mainItems = [
   { title: "Home", url: "/", icon: Home },
   { title: "Reuniões", url: "/meetings", icon: Calendar },
   { title: "Clint", url: "/clint", icon: ClipboardList },
-  { title: "Administrador", url: "/admin", icon: Settings },
 ];
 
 export function AppSidebar() {
@@ -46,7 +46,7 @@ export function AppSidebar() {
 
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {mainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink 
@@ -65,6 +65,23 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      <SidebarFooter className="border-t border-sidebar-border">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive("/admin")}>
+              <NavLink 
+                to="/admin" 
+                className="hover:bg-sidebar-accent transition-colors"
+                activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+              >
+                <Settings className="h-5 w-5" />
+                {open && <span>Administrador</span>}
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }
