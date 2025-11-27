@@ -21,6 +21,10 @@ function convertBigIntToNumber(obj: unknown): unknown {
   return obj;
 }
 
+// SQL helper to safely cast any column to integer (handles empty strings, nulls, non-numeric)
+// Cast to text first to handle both varchar and numeric columns
+const safeInt = (col: string) => `COALESCE(NULLIF(REGEXP_REPLACE(TRIM(${col}::text), '[^0-9]', '', 'g'), '')::integer, 0)`;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -45,8 +49,8 @@ serve(async (req) => {
       const query = `
         SELECT 
           sdr,
-          COALESCE(SUM(CAST(NULLIF(ligacoes, '') AS INTEGER)), 0) as total_ligacoes,
-          COALESCE(SUM(CAST(NULLIF(whatsap, '') AS INTEGER)), 0) as total_whatsapp,
+          COALESCE(SUM(${safeInt('ligacoes')}), 0) as total_ligacoes,
+          COALESCE(SUM(${safeInt('whatsap')}), 0) as total_whatsapp,
           COUNT(*)::integer as dias_trabalhados
         FROM clint_sdr
         ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
@@ -58,9 +62,9 @@ serve(async (req) => {
       const query = `
         SELECT 
           dia_registro,
-          COALESCE(CAST(NULLIF(leads_recebidos, '') AS INTEGER), 0) as leads_recebidos,
-          COALESCE(CAST(NULLIF(prospeccao, '') AS INTEGER), 0) as prospeccao,
-          COALESCE(CAST(NULLIF(conexao, '') AS INTEGER), 0) as conexao
+          ${safeInt('leads_recebidos')} as leads_recebidos,
+          ${safeInt('prospeccao')} as prospeccao,
+          ${safeInt('conexao')} as conexao
         FROM clint_basemae
         ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
         ORDER BY dia_registro DESC
@@ -72,8 +76,8 @@ serve(async (req) => {
         SELECT 
           dia_registro,
           sdr,
-          COALESCE(CAST(NULLIF(ligacoes, '') AS INTEGER), 0) as ligacoes,
-          COALESCE(CAST(NULLIF(whatsap, '') AS INTEGER), 0) as whatsap,
+          ${safeInt('ligacoes')} as ligacoes,
+          ${safeInt('whatsap')} as whatsap,
           tempo
         FROM clint_sdr
         ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
@@ -84,16 +88,16 @@ serve(async (req) => {
     } else if (type === "totals") {
       const sdrQuery = `
         SELECT 
-          COALESCE(SUM(CAST(NULLIF(ligacoes, '') AS INTEGER)), 0)::integer as total_ligacoes,
-          COALESCE(SUM(CAST(NULLIF(whatsap, '') AS INTEGER)), 0)::integer as total_whatsapp
+          COALESCE(SUM(${safeInt('ligacoes')}), 0)::integer as total_ligacoes,
+          COALESCE(SUM(${safeInt('whatsap')}), 0)::integer as total_whatsapp
         FROM clint_sdr
         ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
       `;
       const basemaeQuery = `
         SELECT 
-          COALESCE(SUM(CAST(NULLIF(leads_recebidos, '') AS INTEGER)), 0)::integer as total_leads,
-          COALESCE(SUM(CAST(NULLIF(prospeccao, '') AS INTEGER)), 0)::integer as total_prospeccao,
-          COALESCE(SUM(CAST(NULLIF(conexao, '') AS INTEGER)), 0)::integer as total_conexao
+          COALESCE(SUM(${safeInt('leads_recebidos')}), 0)::integer as total_leads,
+          COALESCE(SUM(${safeInt('prospeccao')}), 0)::integer as total_prospeccao,
+          COALESCE(SUM(${safeInt('conexao')}), 0)::integer as total_conexao
         FROM clint_basemae
         ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
       `;
