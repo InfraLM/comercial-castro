@@ -66,7 +66,7 @@ export default function Clint() {
             dia_registro: diaRegistro,
             sdr: email,
             ligacoes: data.ligacoes ? parseInt(data.ligacoes) : 0,
-            whatsapp: data.whatsapp ? parseInt(data.whatsapp) : 0,
+            whatsap: data.whatsapp ? parseInt(data.whatsapp) : 0,
             tempo: data.tempo || "00:00:00",
           };
 
