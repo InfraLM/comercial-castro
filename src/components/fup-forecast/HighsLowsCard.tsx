@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react";
+import { TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
 import { useFunilComercial, useProdutividadeSDR, useConversaoCloser } from "@/hooks/useFupForecast";
 import { cn } from "@/lib/utils";
 
@@ -18,7 +18,12 @@ export function HighsLowsCard({ weekRange, previousWeekRange, currentWeek }: Hig
     data_fim_anterior: previousWeekRange.fim
   });
   
-  const { data: produtividadeData, isLoading: produtividadeLoading } = useProdutividadeSDR(weekRange.inicio, weekRange.fim);
+  const { data: produtividadeData, isLoading: produtividadeLoading } = useProdutividadeSDR({
+    data_inicio: weekRange.inicio,
+    data_fim: weekRange.fim,
+    data_inicio_anterior: previousWeekRange.inicio,
+    data_fim_anterior: previousWeekRange.fim
+  });
   const { data: closerData, isLoading: closerLoading } = useConversaoCloser(weekRange.inicio, weekRange.fim);
 
   const isLoading = funilLoading || produtividadeLoading || closerLoading;
@@ -86,8 +91,9 @@ export function HighsLowsCard({ weekRange, previousWeekRange, currentWeek }: Hig
   }
 
   // Taxa de No Show alta
-  if (produtividadeData && produtividadeData.length > 0) {
-    const totais = produtividadeData.reduce(
+  const sdrDataAtual = produtividadeData?.semana_atual || [];
+  if (sdrDataAtual.length > 0) {
+    const totais = sdrDataAtual.reduce(
       (acc, sdr) => ({
         reunioes_marcadas: acc.reunioes_marcadas + sdr.reunioes_marcadas,
         reunioes_realizadas: acc.reunioes_realizadas + sdr.reunioes_realizadas

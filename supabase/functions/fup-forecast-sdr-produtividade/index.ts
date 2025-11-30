@@ -6,6 +6,71 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+async function fetchSDRData(client: Client, dataInicio: string, dataFim: string) {
+  // Query para dados de produtividade por SDR
+  const sdrResult = await client.queryObject(`
+    SELECT 
+      cs.sdr,
+      COALESCE(SUM(cs.ligacoes), 0) as ligacoes,
+      COALESCE(SUM(EXTRACT(EPOCH FROM cs.tempo::interval)), 0) as tempo_segundos,
+      COALESCE(SUM(cs.whatsap), 0) as whatsapp
+    FROM clint_sdr cs
+    WHERE TO_DATE(cs.dia_registro, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
+    GROUP BY cs.sdr
+  `, [dataInicio, dataFim]);
+
+  // Query para reuniões por SDR
+  const reunioesResult = await client.queryObject(`
+    SELECT 
+      sdr,
+      COUNT(*) as reunioes_marcadas,
+      COUNT(CASE WHEN UPPER(situacao) = 'SHOW' THEN 1 END) as reunioes_realizadas
+    FROM reunioes_comercial
+    WHERE TO_DATE(dia_registro, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
+    GROUP BY sdr
+  `, [dataInicio, dataFim]);
+
+  const sdrData = sdrResult.rows as any[];
+  const reunioesData = reunioesResult.rows as any[];
+
+  // Combinar dados
+  const reunioesMap = new Map();
+  reunioesData.forEach((r: any) => {
+    reunioesMap.set(r.sdr, {
+      reunioes_marcadas: Number(r.reunioes_marcadas) || 0,
+      reunioes_realizadas: Number(r.reunioes_realizadas) || 0
+    });
+  });
+
+  const response = sdrData.map((sdr: any) => {
+    const reunioesInfo = reunioesMap.get(sdr.sdr) || { reunioes_marcadas: 0, reunioes_realizadas: 0 };
+    return {
+      sdr: sdr.sdr,
+      ligacoes: Number(sdr.ligacoes) || 0,
+      tempo_segundos: Number(sdr.tempo_segundos) || 0,
+      whatsapp: Number(sdr.whatsapp) || 0,
+      reunioes_marcadas: reunioesInfo.reunioes_marcadas,
+      reunioes_realizadas: reunioesInfo.reunioes_realizadas
+    };
+  });
+
+  // Adicionar SDRs que têm reuniões mas não têm dados no clint_sdr
+  reunioesData.forEach((r: any) => {
+    if (!response.find((s: any) => s.sdr === r.sdr)) {
+      response.push({
+        sdr: r.sdr,
+        ligacoes: 0,
+        tempo_segundos: 0,
+        whatsapp: 0,
+        reunioes_marcadas: Number(r.reunioes_marcadas) || 0,
+        reunioes_realizadas: Number(r.reunioes_realizadas) || 0
+      });
+    }
+  });
+
+  return response;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -14,9 +79,9 @@ serve(async (req) => {
   let client: Client | null = null;
 
   try {
-    const { data_inicio, data_fim } = await req.json();
+    const { data_inicio, data_fim, data_inicio_anterior, data_fim_anterior } = await req.json();
     
-    console.log("Buscando produtividade SDR:", { data_inicio, data_fim });
+    console.log("Buscando produtividade SDR:", { data_inicio, data_fim, data_inicio_anterior, data_fim_anterior });
 
     const dbHost = Deno.env.get("EXTERNAL_DB_HOST");
     const dbPort = Deno.env.get("EXTERNAL_DB_PORT");
@@ -47,67 +112,16 @@ serve(async (req) => {
 
     const dataInicioConv = convertDate(data_inicio);
     const dataFimConv = convertDate(data_fim);
+    const dataInicioAntConv = convertDate(data_inicio_anterior);
+    const dataFimAntConv = convertDate(data_fim_anterior);
 
-    // Query para dados de produtividade por SDR
-    const sdrResult = await client.queryObject(`
-      SELECT 
-        cs.sdr,
-        COALESCE(SUM(cs.ligacoes), 0) as ligacoes,
-        COALESCE(SUM(EXTRACT(EPOCH FROM cs.tempo::interval)), 0) as tempo_segundos,
-        COALESCE(SUM(cs.whatsap), 0) as whatsapp
-      FROM clint_sdr cs
-      WHERE TO_DATE(cs.dia_registro, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
-      GROUP BY cs.sdr
-    `, [dataInicioConv, dataFimConv]);
+    const semanaAtual = await fetchSDRData(client, dataInicioConv, dataFimConv);
+    const semanaAnterior = await fetchSDRData(client, dataInicioAntConv, dataFimAntConv);
 
-    // Query para reuniões por SDR
-    const reunioesResult = await client.queryObject(`
-      SELECT 
-        sdr,
-        COUNT(*) as reunioes_marcadas,
-        COUNT(CASE WHEN UPPER(situacao) = 'SHOW' THEN 1 END) as reunioes_realizadas
-      FROM reunioes_comercial
-      WHERE TO_DATE(dia_registro, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
-      GROUP BY sdr
-    `, [dataInicioConv, dataFimConv]);
-
-    const sdrData = sdrResult.rows as any[];
-    const reunioesData = reunioesResult.rows as any[];
-
-    // Combinar dados
-    const reunioesMap = new Map();
-    reunioesData.forEach((r: any) => {
-      reunioesMap.set(r.sdr, {
-        reunioes_marcadas: Number(r.reunioes_marcadas) || 0,
-        reunioes_realizadas: Number(r.reunioes_realizadas) || 0
-      });
-    });
-
-    const response = sdrData.map((sdr: any) => {
-      const reunioesInfo = reunioesMap.get(sdr.sdr) || { reunioes_marcadas: 0, reunioes_realizadas: 0 };
-      return {
-        sdr: sdr.sdr,
-        ligacoes: Number(sdr.ligacoes) || 0,
-        tempo_segundos: Number(sdr.tempo_segundos) || 0,
-        whatsapp: Number(sdr.whatsapp) || 0,
-        reunioes_marcadas: reunioesInfo.reunioes_marcadas,
-        reunioes_realizadas: reunioesInfo.reunioes_realizadas
-      };
-    });
-
-    // Adicionar SDRs que têm reuniões mas não têm dados no clint_sdr
-    reunioesData.forEach((r: any) => {
-      if (!response.find((s: any) => s.sdr === r.sdr)) {
-        response.push({
-          sdr: r.sdr,
-          ligacoes: 0,
-          tempo_segundos: 0,
-          whatsapp: 0,
-          reunioes_marcadas: Number(r.reunioes_marcadas) || 0,
-          reunioes_realizadas: Number(r.reunioes_realizadas) || 0
-        });
-      }
-    });
+    const response = {
+      semana_atual: semanaAtual,
+      semana_anterior: semanaAnterior
+    };
 
     console.log("Produtividade SDR response:", response);
 
@@ -117,7 +131,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Error in fup-forecast-sdr-produtividade:", error);
-    return new Response(JSON.stringify([]), {
+    return new Response(JSON.stringify({ semana_atual: [], semana_anterior: [] }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });

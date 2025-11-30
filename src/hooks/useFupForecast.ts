@@ -59,15 +59,27 @@ export function useFunilComercial(params: FupForecastParams) {
   });
 }
 
-export function useProdutividadeSDR(data_inicio: string, data_fim: string) {
+interface ProdutividadeSDRParams {
+  data_inicio: string;
+  data_fim: string;
+  data_inicio_anterior: string;
+  data_fim_anterior: string;
+}
+
+export interface ProdutividadeSDRResponse {
+  semana_atual: SDRProdutividadeData[];
+  semana_anterior: SDRProdutividadeData[];
+}
+
+export function useProdutividadeSDR(params: ProdutividadeSDRParams) {
   return useQuery({
-    queryKey: ["fup-forecast-sdr-produtividade", data_inicio, data_fim],
+    queryKey: ["fup-forecast-sdr-produtividade", params],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("fup-forecast-sdr-produtividade", {
-        body: { data_inicio, data_fim }
+        body: params
       });
       if (error) throw error;
-      return data as SDRProdutividadeData[];
+      return data as ProdutividadeSDRResponse;
     },
     refetchInterval: 60000,
   });

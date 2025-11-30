@@ -8,13 +8,18 @@ import { useUserMapping } from "@/contexts/UserMappingContext";
 import { cn } from "@/lib/utils";
 
 interface LigacoesReunioesTableProps {
-  data_inicio: string;
-  data_fim: string;
+  weekRange: { inicio: string; fim: string };
+  previousWeekRange: { inicio: string; fim: string };
   currentWeek: number;
 }
 
-export function LigacoesReunioesTable({ data_inicio, data_fim, currentWeek }: LigacoesReunioesTableProps) {
-  const { data, isLoading } = useProdutividadeSDR(data_inicio, data_fim);
+export function LigacoesReunioesTable({ weekRange, previousWeekRange, currentWeek }: LigacoesReunioesTableProps) {
+  const { data, isLoading } = useProdutividadeSDR({
+    data_inicio: weekRange.inicio,
+    data_fim: weekRange.fim,
+    data_inicio_anterior: previousWeekRange.inicio,
+    data_fim_anterior: previousWeekRange.fim
+  });
   const { getSdrName } = useUserMapping();
 
   if (isLoading) {
@@ -31,7 +36,7 @@ export function LigacoesReunioesTable({ data_inicio, data_fim, currentWeek }: Li
     );
   }
 
-  const sdrData = data || [];
+  const sdrData = data?.semana_atual || [];
   
   // Calcular totais
   const totais = sdrData.reduce(

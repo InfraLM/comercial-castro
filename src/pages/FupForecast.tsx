@@ -77,15 +77,15 @@ export default function FupForecast() {
 
       {/* Produtividade SDR */}
       <ProdutividadeSDRTable 
-        data_inicio={weekRange.inicio}
-        data_fim={weekRange.fim}
+        weekRange={weekRange}
+        previousWeekRange={previousWeekRange}
         currentWeek={currentWeek}
       />
 
       {/* Ligações x Reuniões */}
       <LigacoesReunioesTable 
-        data_inicio={weekRange.inicio}
-        data_fim={weekRange.fim}
+        weekRange={weekRange}
+        previousWeekRange={previousWeekRange}
         currentWeek={currentWeek}
       />
 

@@ -16,13 +16,10 @@ interface MetricaFunil {
   atual: number;
   anterior: number;
   percentualAtual: number | null;
-  percentualAnterior: number | null;
-  metaAtual: number | null;
-  metaAnterior: number | null;
 }
 
 export function FunilComercialCard({ weekRange, previousWeekRange, currentWeek }: FunilComercialCardProps) {
-  const { data, isLoading, error } = useFunilComercial({
+  const { data, isLoading } = useFunilComercial({
     data_inicio: weekRange.inicio,
     data_fim: weekRange.fim,
     data_inicio_anterior: previousWeekRange.inicio,
@@ -37,55 +34,37 @@ export function FunilComercialCard({ weekRange, previousWeekRange, currentWeek }
         nome: "Leads Recebidos",
         atual: atual.leads_recebido,
         anterior: anterior.leads_recebido,
-        percentualAtual: null,
-        percentualAnterior: null,
-        metaAtual: null,
-        metaAnterior: null
+        percentualAtual: null
       },
       {
         nome: "Prospecção",
         atual: atual.prospeccao,
         anterior: anterior.prospeccao,
-        percentualAtual: safeDiv(atual.prospeccao, atual.leads_recebido),
-        percentualAnterior: safeDiv(anterior.prospeccao, anterior.leads_recebido),
-        metaAtual: 100,
-        metaAnterior: 100
+        percentualAtual: safeDiv(atual.prospeccao, atual.leads_recebido)
       },
       {
         nome: "Conexão",
         atual: atual.conexao,
         anterior: anterior.conexao,
-        percentualAtual: safeDiv(atual.conexao, atual.prospeccao),
-        percentualAnterior: safeDiv(anterior.conexao, anterior.prospeccao),
-        metaAtual: safeDiv(atual.conexao, atual.leads_recebido),
-        metaAnterior: safeDiv(anterior.conexao, anterior.leads_recebido)
+        percentualAtual: safeDiv(atual.conexao, atual.prospeccao)
       },
       {
         nome: "Reuniões Marcadas",
         atual: atual.reunioes_marcadas,
         anterior: anterior.reunioes_marcadas,
-        percentualAtual: safeDiv(atual.reunioes_marcadas, atual.conexao),
-        percentualAnterior: safeDiv(anterior.reunioes_marcadas, anterior.conexao),
-        metaAtual: safeDiv(atual.reunioes_marcadas, atual.leads_recebido),
-        metaAnterior: safeDiv(anterior.reunioes_marcadas, anterior.leads_recebido)
+        percentualAtual: safeDiv(atual.reunioes_marcadas, atual.conexao)
       },
       {
         nome: "Reuniões Realizadas",
         atual: atual.reunioes_realizadas,
         anterior: anterior.reunioes_realizadas,
-        percentualAtual: safeDiv(atual.reunioes_realizadas, atual.reunioes_marcadas),
-        percentualAnterior: safeDiv(anterior.reunioes_realizadas, anterior.reunioes_marcadas),
-        metaAtual: safeDiv(atual.reunioes_realizadas, atual.leads_recebido),
-        metaAnterior: safeDiv(anterior.reunioes_realizadas, anterior.leads_recebido)
+        percentualAtual: safeDiv(atual.reunioes_realizadas, atual.reunioes_marcadas)
       },
       {
         nome: "Vendas",
         atual: atual.vendas,
         anterior: anterior.vendas,
-        percentualAtual: safeDiv(atual.vendas, atual.reunioes_realizadas),
-        percentualAnterior: safeDiv(anterior.vendas, anterior.reunioes_realizadas),
-        metaAtual: safeDiv(atual.vendas, atual.leads_recebido),
-        metaAnterior: safeDiv(anterior.vendas, anterior.leads_recebido)
+        percentualAtual: safeDiv(atual.vendas, atual.reunioes_realizadas)
       }
     ];
   };
@@ -118,10 +97,10 @@ export function FunilComercialCard({ weekRange, previousWeekRange, currentWeek }
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          Funil Comercial - Comparativo Semanal
+          Funil Comercial - Semana W{currentWeek}
         </CardTitle>
         <CardDescription>
-          W{currentWeek - 1} vs W{currentWeek}
+          Comparativo com W{currentWeek - 1}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -130,12 +109,8 @@ export function FunilComercialCard({ weekRange, previousWeekRange, currentWeek }
             <TableHeader>
               <TableRow>
                 <TableHead className="min-w-[140px]">Métrica</TableHead>
-                <TableHead className="text-center">W{currentWeek - 1}</TableHead>
-                <TableHead className="text-center">% W{currentWeek - 1}</TableHead>
-                <TableHead className="text-center">W{currentWeek}</TableHead>
-                <TableHead className="text-center">% W{currentWeek}</TableHead>
-                <TableHead className="text-center">Meta W{currentWeek - 1}</TableHead>
-                <TableHead className="text-center">Meta W{currentWeek}</TableHead>
+                <TableHead className="text-center">Quantidade</TableHead>
+                <TableHead className="text-center">% Conversão</TableHead>
                 <TableHead className="text-center">Tendência</TableHead>
               </TableRow>
             </TableHeader>
@@ -143,28 +118,14 @@ export function FunilComercialCard({ weekRange, previousWeekRange, currentWeek }
               {metricas.map((metrica, index) => (
                 <TableRow key={metrica.nome}>
                   <TableCell className="font-medium">{metrica.nome}</TableCell>
-                  <TableCell className="text-center">{metrica.anterior.toLocaleString('pt-BR')}</TableCell>
-                  <TableCell className="text-center">
-                    {metrica.percentualAnterior !== null ? `${metrica.percentualAnterior.toFixed(1)}%` : '-'}
-                  </TableCell>
                   <TableCell className="text-center font-semibold">{metrica.atual.toLocaleString('pt-BR')}</TableCell>
-                  <TableCell className={cn(
-                    "text-center",
-                    metrica.percentualAtual !== null && metrica.percentualAnterior !== null && 
-                    metrica.percentualAtual > metrica.percentualAnterior && "text-emerald-600",
-                    metrica.percentualAtual !== null && metrica.percentualAnterior !== null && 
-                    metrica.percentualAtual < metrica.percentualAnterior && "text-red-600"
-                  )}>
+                  <TableCell className="text-center">
                     {metrica.percentualAtual !== null ? `${metrica.percentualAtual.toFixed(1)}%` : '-'}
                   </TableCell>
-                  <TableCell className="text-center text-muted-foreground">
-                    {metrica.metaAnterior !== null ? `${metrica.metaAnterior.toFixed(2)}%` : '-'}
-                  </TableCell>
-                  <TableCell className="text-center text-muted-foreground">
-                    {metrica.metaAtual !== null ? `${metrica.metaAtual.toFixed(2)}%` : '-'}
-                  </TableCell>
                   <TableCell className="text-center">
-                    {index > 0 && getTrendIcon(metrica.atual, metrica.anterior)}
+                    <div className="flex items-center justify-center gap-1">
+                      {getTrendIcon(metrica.atual, metrica.anterior)}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
