@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,14 +6,23 @@ import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Separator } from "@/components/ui/separator";
-import { Save, Loader2, CalendarIcon, Users, Target, Zap, Phone, MessageCircle, Clock, BarChart3 } from "lucide-react";
+import { Save, Loader2, CalendarIcon, Users, Target, Zap, Phone, MessageCircle, Clock, BarChart3, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useUserMapping } from "@/contexts/UserMappingContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function AdminClintRegistration() {
   const [date, setDate] = useState<Date>(new Date());
@@ -21,15 +30,65 @@ export function AdminClintRegistration() {
   const [prospeccao, setProspeccao] = useState("");
   const [conexao, setConexao] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showDuplicateAlert, setShowDuplicateAlert] = useState(false);
+  const [duplicateInfo, setDuplicateInfo] = useState<{ basemae: boolean; sdrCount: number }>({ basemae: false, sdrCount: 0 });
   const { sdrMapping } = useUserMapping();
+  const isSubmitting = useRef(false);
 
   const [sdrData, setSdrData] = useState<Record<string, { ligacoes: string; whatsapp: string; tempo: string }>>({});
 
-  const handleSaveRegistro = async () => {
+  const checkForDuplicates = async (diaRegistro: string): Promise<{ basemae: boolean; sdrCount: number }> => {
+    try {
+      // Check for existing basemae record
+      const { data: basemaeData } = await supabase.functions.invoke('external-db-query', {
+        body: {
+          query: `SELECT COUNT(*) as count FROM clint_basemae WHERE dia_registro = $1`,
+          params: [diaRegistro],
+        },
+      });
+
+      // Check for existing SDR records
+      const { data: sdrData } = await supabase.functions.invoke('external-db-query', {
+        body: {
+          query: `SELECT COUNT(*) as count FROM clint_sdr WHERE dia_registro = $1`,
+          params: [diaRegistro],
+        },
+      });
+
+      const basemaeExists = basemaeData?.data?.[0]?.count > 0;
+      const sdrCount = parseInt(sdrData?.data?.[0]?.count || '0');
+
+      return { basemae: basemaeExists, sdrCount };
+    } catch (error) {
+      console.error('Error checking duplicates:', error);
+      return { basemae: false, sdrCount: 0 };
+    }
+  };
+
+  const handleSaveRegistro = async (forceInsert = false) => {
+    // Prevent double submissions
+    if (isSubmitting.current || isLoading) {
+      console.log('Submission already in progress, ignoring...');
+      return;
+    }
+
+    isSubmitting.current = true;
     setIsLoading(true);
 
     try {
       const diaRegistro = format(date, "dd/MM/yyyy");
+
+      // Check for duplicates first (unless forcing insert)
+      if (!forceInsert) {
+        const duplicates = await checkForDuplicates(diaRegistro);
+        if (duplicates.basemae || duplicates.sdrCount > 0) {
+          setDuplicateInfo(duplicates);
+          setShowDuplicateAlert(true);
+          setIsLoading(false);
+          isSubmitting.current = false;
+          return;
+        }
+      }
 
       // Always send values, defaulting to 0 when empty
       const basemaeData = {
@@ -38,6 +97,8 @@ export function AdminClintRegistration() {
         prospeccao: prospeccao ? parseInt(prospeccao) : 0,
         conexao: conexao ? parseInt(conexao) : 0,
       };
+
+      console.log('Inserting basemae data:', basemaeData);
 
       const { error: basemaeError } = await supabase.functions.invoke('insert-data', {
         body: {
@@ -52,6 +113,9 @@ export function AdminClintRegistration() {
 
       // Insert SDR data for all SDRs, defaulting to 0 when empty
       const sdrEmails = Object.keys(sdrMapping);
+      
+      console.log('Inserting SDR data for', sdrEmails.length, 'SDRs');
+      
       const sdrInsertPromises = sdrEmails.map(async (email) => {
         const data = sdrData[email] || { ligacoes: "", whatsapp: "", tempo: "" };
         const sdrRecord = {
@@ -61,6 +125,8 @@ export function AdminClintRegistration() {
           whatsap: data.whatsapp ? parseInt(data.whatsapp) : 0,
           tempo: data.tempo || "00:00:00",
         };
+
+        console.log('Inserting SDR record:', sdrRecord);
 
         return supabase.functions.invoke('insert-data', {
           body: {
@@ -91,6 +157,7 @@ export function AdminClintRegistration() {
       toast.error(error instanceof Error ? error.message : "Erro ao salvar registro");
     } finally {
       setIsLoading(false);
+      isSubmitting.current = false;
     }
   };
 
@@ -120,7 +187,7 @@ export function AdminClintRegistration() {
           <p className="text-muted-foreground">Registre os dados de performance diária da equipe SDR</p>
         </div>
         <Button 
-          onClick={handleSaveRegistro} 
+          onClick={() => handleSaveRegistro()} 
           disabled={isLoading}
           size="lg"
           className="shadow-lg"
@@ -345,6 +412,35 @@ export function AdminClintRegistration() {
           )}
         </CardContent>
       </Card>
+
+      {/* Duplicate Alert Dialog */}
+      <AlertDialog open={showDuplicateAlert} onOpenChange={setShowDuplicateAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="h-5 w-5" />
+              Registro Duplicado Detectado
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>Já existem registros para a data <strong>{format(date, "dd/MM/yyyy")}</strong>:</p>
+              <ul className="list-disc list-inside text-sm space-y-1">
+                {duplicateInfo.basemae && <li>1 registro na tabela de métricas diárias</li>}
+                {duplicateInfo.sdrCount > 0 && <li>{duplicateInfo.sdrCount} registro(s) de SDR</li>}
+              </ul>
+              <p className="pt-2">Deseja inserir novos registros mesmo assim? Isso pode criar dados duplicados.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => handleSaveRegistro(true)}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              Inserir Mesmo Assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
