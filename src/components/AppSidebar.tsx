@@ -1,4 +1,4 @@
-import { Home, Calendar, ClipboardList, Settings } from "lucide-react";
+import { Home, Calendar, ClipboardList, Settings, TrendingUp } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 
@@ -18,6 +18,7 @@ import {
 const mainItems = [
   { title: "Home", url: "/", icon: Home },
   { title: "Reuniões", url: "/meetings", icon: Calendar },
+  { title: "FUP/Forecast", url: "/fup-forecast", icon: TrendingUp },
   { title: "Clint", url: "/clint", icon: ClipboardList },
 ];
 

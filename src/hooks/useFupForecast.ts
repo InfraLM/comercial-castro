@@ -1,0 +1,116 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+interface FupForecastParams {
+  data_inicio: string;
+  data_fim: string;
+  data_inicio_anterior: string;
+  data_fim_anterior: string;
+}
+
+export interface FunilData {
+  leads_recebido: number;
+  prospeccao: number;
+  conexao: number;
+  reunioes_marcadas: number;
+  reunioes_realizadas: number;
+  vendas: number;
+}
+
+export interface SDRProdutividadeData {
+  sdr: string;
+  ligacoes: number;
+  tempo_segundos: number;
+  whatsapp: number;
+  reunioes_marcadas: number;
+  reunioes_realizadas: number;
+}
+
+export interface ConversaoSDRData {
+  sdr: string;
+  reunioes_realizadas: number;
+  vendas: number;
+}
+
+export interface ConversaoCloserData {
+  closer: string;
+  reunioes_realizadas: number;
+  vendas: number;
+}
+
+export interface VendasProdutoData {
+  produto: string;
+  total: number;
+  vendas_sdr: number;
+  vendas_closer: number;
+}
+
+export function useFunilComercial(params: FupForecastParams) {
+  return useQuery({
+    queryKey: ["fup-forecast-funil", params],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("fup-forecast-funil", {
+        body: params
+      });
+      if (error) throw error;
+      return data as { semana_atual: FunilData; semana_anterior: FunilData };
+    },
+    refetchInterval: 60000,
+  });
+}
+
+export function useProdutividadeSDR(data_inicio: string, data_fim: string) {
+  return useQuery({
+    queryKey: ["fup-forecast-sdr-produtividade", data_inicio, data_fim],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("fup-forecast-sdr-produtividade", {
+        body: { data_inicio, data_fim }
+      });
+      if (error) throw error;
+      return data as SDRProdutividadeData[];
+    },
+    refetchInterval: 60000,
+  });
+}
+
+export function useConversaoSDR(data_inicio: string, data_fim: string) {
+  return useQuery({
+    queryKey: ["fup-forecast-conversao-sdr", data_inicio, data_fim],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("fup-forecast-conversao", {
+        body: { data_inicio, data_fim, tipo: "sdr" }
+      });
+      if (error) throw error;
+      return data as ConversaoSDRData[];
+    },
+    refetchInterval: 60000,
+  });
+}
+
+export function useConversaoCloser(data_inicio: string, data_fim: string) {
+  return useQuery({
+    queryKey: ["fup-forecast-conversao-closer", data_inicio, data_fim],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("fup-forecast-conversao", {
+        body: { data_inicio, data_fim, tipo: "closer" }
+      });
+      if (error) throw error;
+      return data as ConversaoCloserData[];
+    },
+    refetchInterval: 60000,
+  });
+}
+
+export function useVendasProduto(data_inicio: string, data_fim: string) {
+  return useQuery({
+    queryKey: ["fup-forecast-vendas-produto", data_inicio, data_fim],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("fup-forecast-vendas-produto", {
+        body: { data_inicio, data_fim }
+      });
+      if (error) throw error;
+      return data as VendasProdutoData[];
+    },
+    refetchInterval: 60000,
+  });
+}

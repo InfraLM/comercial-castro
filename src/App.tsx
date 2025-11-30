@@ -9,6 +9,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Index from "./pages/Index";
 import Meetings from "./pages/Meetings";
+import FupForecast from "./pages/FupForecast";
 import Admin from "./pages/Admin";
 import Clint from "./pages/Clint";
 import NotFound from "./pages/NotFound";
@@ -35,6 +36,7 @@ const App = () => (
                     <Routes>
                       <Route path="/" element={<Index />} />
                       <Route path="/meetings" element={<Meetings />} />
+                      <Route path="/fup-forecast" element={<FupForecast />} />
                       <Route path="/clint" element={<Clint />} />
                       <Route path="/admin" element={<Admin />} />
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
