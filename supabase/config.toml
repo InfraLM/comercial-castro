@@ -17,3 +17,18 @@ verify_jwt = false
 
 [functions.delete-meeting]
 verify_jwt = false
+
+[functions.clint-analytics]
+verify_jwt = false
+
+[functions.fup-forecast-funil]
+verify_jwt = false
+
+[functions.fup-forecast-sdr-produtividade]
+verify_jwt = false
+
+[functions.fup-forecast-conversao]
+verify_jwt = false
+
+[functions.fup-forecast-vendas-produto]
+verify_jwt = false
