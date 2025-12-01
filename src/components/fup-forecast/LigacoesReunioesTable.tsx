@@ -1,11 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProdutividadeSDR } from "@/hooks/useFupForecast";
 import { getIndicatorColor } from "@/lib/dateUtils";
 import { useUserMapping } from "@/contexts/UserMappingContext";
-import { cn } from "@/lib/utils";
 
 interface LigacoesReunioesTableProps {
   weekRange: { inicio: string; fim: string };
@@ -96,24 +94,16 @@ export function LigacoesReunioesTable({ weekRange, previousWeekRange, currentWee
                     <TableCell className="text-center">{sdr.reunioes_marcadas}</TableCell>
                     <TableCell className="text-center">{sdr.reunioes_realizadas}</TableCell>
                     <TableCell className="text-center">
-                      <Badge className={cn(
-                        "font-medium",
-                        colorM === 'green' 
-                          ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 hover:bg-emerald-500/20"
-                          : "bg-red-500/10 text-red-700 border-red-500/20 hover:bg-red-500/20"
-                      )}>
-                        {ligReuniaoM.toFixed(2)} {colorM === 'green' ? '✅' : '❌'}
-                      </Badge>
+                      <span className={colorM === 'green' ? "text-emerald-600 font-semibold" : "text-red-600 font-semibold"}>
+                        {ligReuniaoM.toFixed(2)}
+                      </span>
+                      <span className="ml-1">{colorM === 'green' ? '✅' : '❌'}</span>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge className={cn(
-                        "font-medium",
-                        colorR === 'green' 
-                          ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 hover:bg-emerald-500/20"
-                          : "bg-red-500/10 text-red-700 border-red-500/20 hover:bg-red-500/20"
-                      )}>
-                        {ligReuniaoR.toFixed(2)} {colorR === 'green' ? '✅' : '❌'}
-                      </Badge>
+                      <span className={colorR === 'green' ? "text-emerald-600 font-semibold" : "text-red-600 font-semibold"}>
+                        {ligReuniaoR.toFixed(2)}
+                      </span>
+                      <span className="ml-1">{colorR === 'green' ? '✅' : '❌'}</span>
                     </TableCell>
                   </TableRow>
                 );
@@ -126,24 +116,16 @@ export function LigacoesReunioesTable({ weekRange, previousWeekRange, currentWee
                 <TableCell className="text-center">{totais.reunioes_marcadas}</TableCell>
                 <TableCell className="text-center">{totais.reunioes_realizadas}</TableCell>
                 <TableCell className="text-center">
-                  <Badge className={cn(
-                    "font-medium",
-                    getIndicatorColor('ligacoes_reuniao_m', totalLigReuniaoM) === 'green' 
-                      ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 hover:bg-emerald-500/20"
-                      : "bg-red-500/10 text-red-700 border-red-500/20 hover:bg-red-500/20"
-                  )}>
-                    {totalLigReuniaoM.toFixed(2)} {getIndicatorColor('ligacoes_reuniao_m', totalLigReuniaoM) === 'green' ? '✅' : '❌'}
-                  </Badge>
+                  <span className={getIndicatorColor('ligacoes_reuniao_m', totalLigReuniaoM) === 'green' ? "text-emerald-600 font-semibold" : "text-red-600 font-semibold"}>
+                    {totalLigReuniaoM.toFixed(2)}
+                  </span>
+                  <span className="ml-1">{getIndicatorColor('ligacoes_reuniao_m', totalLigReuniaoM) === 'green' ? '✅' : '❌'}</span>
                 </TableCell>
                 <TableCell className="text-center">
-                  <Badge className={cn(
-                    "font-medium",
-                    getIndicatorColor('ligacoes_reuniao_r', totalLigReuniaoR) === 'green' 
-                      ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 hover:bg-emerald-500/20"
-                      : "bg-red-500/10 text-red-700 border-red-500/20 hover:bg-red-500/20"
-                  )}>
-                    {totalLigReuniaoR.toFixed(2)} {getIndicatorColor('ligacoes_reuniao_r', totalLigReuniaoR) === 'green' ? '✅' : '❌'}
-                  </Badge>
+                  <span className={getIndicatorColor('ligacoes_reuniao_r', totalLigReuniaoR) === 'green' ? "text-emerald-600 font-semibold" : "text-red-600 font-semibold"}>
+                    {totalLigReuniaoR.toFixed(2)}
+                  </span>
+                  <span className="ml-1">{getIndicatorColor('ligacoes_reuniao_r', totalLigReuniaoR) === 'green' ? '✅' : '❌'}</span>
                 </TableCell>
               </TableRow>
             </TableBody>
