@@ -75,7 +75,7 @@ serve(async (req) => {
       SELECT COUNT(*) as total_vendas
       FROM comercial_basemae
       WHERE TO_DATE(data_recebimento, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
-        AND UPPER(produto) = 'PÓS GRADUAÇÃO'
+        AND UPPER(produto_vendido) LIKE '%POS GRADUA%'
     `, [dataInicioConv, dataFimConv]);
 
     // Query para semana anterior - clint_basemae
@@ -102,7 +102,7 @@ serve(async (req) => {
       SELECT COUNT(*) as total_vendas
       FROM comercial_basemae
       WHERE TO_DATE(data_recebimento, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
-        AND UPPER(produto) = 'PÓS GRADUAÇÃO'
+        AND UPPER(produto_vendido) LIKE '%POS GRADUA%'
     `, [dataInicioAntConv, dataFimAntConv]);
 
     const basemaeAtual = basemaeAtualResult.rows[0] as any || {};
