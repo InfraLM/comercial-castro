@@ -19,23 +19,43 @@ serve(async (req) => {
     }
 
     const systemPrompt = `Você é um analista de vendas especializado em análise de funil comercial. 
-Analise os dados fornecidos comparando a semana atual com a semana anterior e forneça insights acionáveis.
+Analise os dados fornecidos comparando a semana atual com a semana anterior e forneça insights profundos e acionáveis.
 Foque em: tendências, pontos de atenção, oportunidades de melhoria, e recomendações estratégicas.
 Seja objetivo, use números concretos, e organize a análise em "HIGHS" (pontos positivos) e "LOWS" (pontos de atenção).
-Cada ponto deve ser uma frase concisa e acionável.`;
 
-    const userPrompt = `Analise os dados da semana ${currentWeek}:
+IMPORTANTE:
+- Retorne entre 3-5 pontos em cada categoria (HIGHS e LOWS)
+- Cada ponto deve ser uma frase concisa e acionável
+- Use dados concretos e percentuais quando relevante
+- Identifique padrões e tendências importantes
+- Dê recomendações práticas e específicas`;
+
+    const userPrompt = `Analise os dados da semana ${currentWeek} e compare com a semana anterior:
 
 DADOS DA SEMANA ATUAL:
-${JSON.stringify(weekData.semana_atual, null, 2)}
+- Leads recebidos: ${weekData.semana_atual.leads_recebido}
+- Prospecção: ${weekData.semana_atual.prospeccao}
+- Conexão: ${weekData.semana_atual.conexao}
+- Reuniões marcadas: ${weekData.semana_atual.reunioes_marcadas}
+- Reuniões realizadas: ${weekData.semana_atual.reunioes_realizadas}
+- Vendas: ${weekData.semana_atual.vendas}
 
 DADOS DA SEMANA ANTERIOR:
-${JSON.stringify(weekData.semana_anterior, null, 2)}
+- Leads recebidos: ${weekData.semana_anterior.leads_recebido}
+- Prospecção: ${weekData.semana_anterior.prospeccao}
+- Conexão: ${weekData.semana_anterior.conexao}
+- Reuniões marcadas: ${weekData.semana_anterior.reunioes_marcadas}
+- Reuniões realizadas: ${weekData.semana_anterior.reunioes_realizadas}
+- Vendas: ${weekData.semana_anterior.vendas}
 
-Forneça a análise no formato JSON:
+PRODUTIVIDADE E CLOSERS:
+${weekData.produtividade ? `Total de SDRs ativos: ${weekData.produtividade.semana_atual?.length || 0}` : ''}
+${weekData.closers ? `Total de Closers ativos: ${weekData.closers.length}` : ''}
+
+Forneça uma análise completa no formato JSON. Retorne EXATAMENTE neste formato:
 {
-  "highs": ["insight 1", "insight 2", ...],
-  "lows": ["ponto de atenção 1", "ponto de atenção 2", ...]
+  "highs": ["insight positivo 1 com números", "insight positivo 2 com números", "insight positivo 3 com números"],
+  "lows": ["ponto de atenção 1 com números", "ponto de atenção 2 com números", "ponto de atenção 3 com números"]
 }`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

@@ -1,10 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingUp, AlertTriangle, CheckCircle, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle, Sparkles } from "lucide-react";
 import { useFunilComercial, useProdutividadeSDR, useConversaoCloser, useAIAnalysis } from "@/hooks/useFupForecast";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
 
 interface HighsLowsCardProps {
   weekRange: { inicio: string; fim: string };
@@ -13,8 +11,6 @@ interface HighsLowsCardProps {
 }
 
 export function HighsLowsCard({ weekRange, previousWeekRange, currentWeek }: HighsLowsCardProps) {
-  const [useAI, setUseAI] = useState(false);
-  
   const { data: funilData, isLoading: funilLoading } = useFunilComercial({
     data_inicio: weekRange.inicio,
     data_fim: weekRange.fim,
@@ -40,16 +36,19 @@ export function HighsLowsCard({ weekRange, previousWeekRange, currentWeek }: Hig
   const { data: aiAnalysis, isLoading: aiLoading } = useAIAnalysis(
     weekData,
     currentWeek,
-    useAI && weekData !== null
+    weekData !== null
   );
 
   const isLoading = funilLoading || produtividadeLoading || closerLoading;
 
-  if (isLoading) {
+  if (isLoading || aiLoading) {
     return (
       <Card>
         <CardHeader>
-          <Skeleton className="h-6 w-64" />
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            {aiLoading ? "Analisando dados com IA..." : "Carregando..."}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Skeleton className="h-48 w-full" />
@@ -58,132 +57,18 @@ export function HighsLowsCard({ weekRange, previousWeekRange, currentWeek }: Hig
     );
   }
 
-  // Usar análise de IA se disponível, senão calcular automaticamente
-  let highs: string[] = [];
-  let lows: string[] = [];
+  // Usar análise de IA
+  const highs: string[] = aiAnalysis?.highs || ["Análise em andamento - dados sendo processados"];
+  const lows: string[] = aiAnalysis?.lows || ["Aguardando análise completa dos dados"];
 
-  if (useAI && aiAnalysis) {
-    highs = aiAnalysis.highs;
-    lows = aiAnalysis.lows;
-  } else {
-    // Calcular Highs e Lows automaticamente
-
-  if (funilData) {
-    const atual = funilData.semana_atual;
-    const anterior = funilData.semana_anterior;
-
-    // Taxa de conversão crescente
-    const taxaConversaoAtual = atual.reunioes_realizadas > 0 
-      ? (atual.vendas / atual.reunioes_realizadas) * 100 
-      : 0;
-    const taxaConversaoAnterior = anterior.reunioes_realizadas > 0 
-      ? (anterior.vendas / anterior.reunioes_realizadas) * 100 
-      : 0;
-
-    if (taxaConversaoAtual > taxaConversaoAnterior && taxaConversaoAtual > 0) {
-      highs.push(`Taxa de conversão aumentou de ${taxaConversaoAnterior.toFixed(1)}% para ${taxaConversaoAtual.toFixed(1)}%`);
-    }
-
-    // Aumento de vendas
-    if (atual.vendas > anterior.vendas) {
-      const aumento = anterior.vendas > 0 
-        ? ((atual.vendas - anterior.vendas) / anterior.vendas * 100).toFixed(1)
-        : '100';
-      highs.push(`Aumento de ${aumento}% nas vendas (${anterior.vendas} → ${atual.vendas})`);
-    }
-
-    // Aumento de leads
-    if (atual.leads_recebido > anterior.leads_recebido) {
-      highs.push(`Leads recebidos aumentaram de ${anterior.leads_recebido} para ${atual.leads_recebido}`);
-    }
-
-    // Diminuição de reuniões realizadas
-    if (atual.reunioes_realizadas < anterior.reunioes_realizadas) {
-      lows.push(`Diminuição das reuniões realizadas em relação a semana anterior (${anterior.reunioes_realizadas} → ${atual.reunioes_realizadas})`);
-    }
-
-    // Diminuição de vendas
-    if (atual.vendas < anterior.vendas) {
-      lows.push(`Queda nas vendas em relação a semana anterior (${anterior.vendas} → ${atual.vendas})`);
-    }
-
-    // Taxa de conversão caindo
-    if (taxaConversaoAtual < taxaConversaoAnterior && taxaConversaoAnterior > 0) {
-      lows.push(`Taxa de conversão caiu de ${taxaConversaoAnterior.toFixed(1)}% para ${taxaConversaoAtual.toFixed(1)}%`);
-    }
-  }
-
-  // Taxa de No Show alta
-  const sdrDataAtual = produtividadeData?.semana_atual || [];
-  if (sdrDataAtual.length > 0) {
-    const totais = sdrDataAtual.reduce(
-      (acc, sdr) => ({
-        reunioes_marcadas: acc.reunioes_marcadas + sdr.reunioes_marcadas,
-        reunioes_realizadas: acc.reunioes_realizadas + sdr.reunioes_realizadas
-      }),
-      { reunioes_marcadas: 0, reunioes_realizadas: 0 }
-    );
-
-    const taxaNoShow = totais.reunioes_marcadas > 0 
-      ? ((totais.reunioes_marcadas - totais.reunioes_realizadas) / totais.reunioes_marcadas) * 100 
-      : 0;
-
-    if (taxaNoShow >= 25) {
-      lows.push(`Taxa de no show acima da meta (${taxaNoShow.toFixed(1)}%)`);
-    } else if (taxaNoShow < 20) {
-      highs.push(`Taxa de no show abaixo de 20% (${taxaNoShow.toFixed(1)}%)`);
-    }
-  }
-
-  // Taxa de conversão dos closers
-  if (closerData && closerData.length > 0) {
-    const totais = closerData.reduce(
-      (acc, closer) => ({
-        reunioes_realizadas: acc.reunioes_realizadas + closer.reunioes_realizadas,
-        vendas: acc.vendas + closer.vendas
-      }),
-      { reunioes_realizadas: 0, vendas: 0 }
-    );
-
-    const taxaConversaoCloser = totais.reunioes_realizadas > 0 
-      ? (totais.vendas / totais.reunioes_realizadas) * 100 
-      : 0;
-
-    if (taxaConversaoCloser >= 25) {
-      highs.push(`Taxa de conversão dos Closers atingiu ${taxaConversaoCloser.toFixed(1)}%`);
-    } else if (taxaConversaoCloser < 20) {
-      lows.push(`Taxa de conversão dos Closers abaixo de 20% (${taxaConversaoCloser.toFixed(1)}%)`);
-    }
-  }
-
-    // Adicionar mensagens padrão se não houver nenhum insight
-    if (highs.length === 0) {
-      highs.push("Análise em andamento - dados sendo coletados");
-    }
-    if (lows.length === 0) {
-      lows.push("Nenhum ponto de atenção identificado nesta semana");
-    }
-  }
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Highs & Lows - W{currentWeek}
-          </CardTitle>
-          <Button
-            variant={useAI ? "default" : "outline"}
-            size="sm"
-            onClick={() => setUseAI(!useAI)}
-            disabled={aiLoading}
-            className="gap-2"
-          >
-            <Sparkles className="h-4 w-4" />
-            {aiLoading ? "Analisando..." : useAI ? "Análise IA Ativa" : "Ativar Análise IA"}
-          </Button>
-        </div>
+        <CardTitle className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-primary" />
+          Análise Semanal com IA - W{currentWeek}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
