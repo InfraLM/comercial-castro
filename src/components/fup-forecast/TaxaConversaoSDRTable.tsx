@@ -62,9 +62,9 @@ export function TaxaConversaoSDRTable({ data_inicio, data_fim, currentWeek }: Ta
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="text-xs py-2">SDR</TableHead>
-              <TableHead className="text-xs py-2 text-center w-16">Reun.</TableHead>
-              <TableHead className="text-xs py-2 text-center w-16">Vendas</TableHead>
+              <TableHead className="text-xs py-2 w-24">SDR</TableHead>
+              <TableHead className="text-xs py-2 text-center flex-1">Reun.</TableHead>
+              <TableHead className="text-xs py-2 text-center flex-1">Vendas</TableHead>
               <TableHead className="text-xs py-2 text-center w-20">Taxa</TableHead>
             </TableRow>
           </TableHeader>
