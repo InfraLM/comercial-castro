@@ -71,12 +71,22 @@ serve(async (req) => {
     `, [dataInicioConv, dataFimConv]);
 
     // Query para semana atual - vendas (apenas Pós Graduação)
+    // Primeiro, vamos ver os produtos disponíveis para debug
+    const debugProdutos = await client.queryObject(`
+      SELECT DISTINCT produto_vendido, COUNT(*) as qtd
+      FROM comercial_basemae
+      WHERE TO_DATE(data_recebimento, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
+      GROUP BY produto_vendido
+    `, [dataInicioConv, dataFimConv]);
+    console.log("Produtos no período atual:", debugProdutos.rows);
+
     const vendasAtualResult = await client.queryObject(`
       SELECT COUNT(*) as total_vendas
       FROM comercial_basemae
       WHERE TO_DATE(data_recebimento, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
         AND UPPER(produto_vendido) LIKE '%POS GRADUA%'
     `, [dataInicioConv, dataFimConv]);
+    console.log("Vendas Pós Graduação atual:", vendasAtualResult.rows);
 
     // Query para semana anterior - clint_basemae
     const basemaeAnteriorResult = await client.queryObject(`
