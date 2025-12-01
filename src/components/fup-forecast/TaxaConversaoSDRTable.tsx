@@ -62,10 +62,10 @@ export function TaxaConversaoSDRTable({ data_inicio, data_fim, currentWeek }: Ta
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="text-xs py-2">SDR</TableHead>
-              <TableHead className="text-xs py-2 text-center w-14">Reun.</TableHead>
-              <TableHead className="text-xs py-2 text-center w-14">Vendas</TableHead>
-              <TableHead className="text-xs py-2 text-center w-16">Taxa</TableHead>
+              <TableHead className="text-sm py-2">SDR</TableHead>
+              <TableHead className="text-sm py-2 text-center w-14">Reun.</TableHead>
+              <TableHead className="text-sm py-2 text-center w-14">Vendas</TableHead>
+              <TableHead className="text-sm py-2 text-center w-16">Taxa</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -75,10 +75,10 @@ export function TaxaConversaoSDRTable({ data_inicio, data_fim, currentWeek }: Ta
               
               return (
                 <TableRow key={sdr.sdr}>
-                  <TableCell className="text-xs py-1.5 font-medium">{getSdrName(sdr.sdr)}</TableCell>
-                  <TableCell className="text-xs py-1.5 text-center">{sdr.reunioes_realizadas}</TableCell>
-                  <TableCell className="text-xs py-1.5 text-center">{sdr.vendas}</TableCell>
-                  <TableCell className="text-xs py-1.5 text-center whitespace-nowrap">
+                  <TableCell className="text-sm py-1.5 font-medium">{getSdrName(sdr.sdr)}</TableCell>
+                  <TableCell className="text-sm py-1.5 text-center">{sdr.reunioes_realizadas}</TableCell>
+                  <TableCell className="text-sm py-1.5 text-center">{sdr.vendas}</TableCell>
+                  <TableCell className="text-sm py-1.5 text-center whitespace-nowrap">
                     <span className={color === 'green' ? "text-emerald-600 font-semibold" : "text-red-600 font-semibold"}>
                       {taxaConversao.toFixed(1)}%{color === 'green' ? '✅' : '❌'}
                     </span>
@@ -88,10 +88,10 @@ export function TaxaConversaoSDRTable({ data_inicio, data_fim, currentWeek }: Ta
             })}
             
             <TableRow className="bg-muted/50 font-bold border-t-2">
-              <TableCell className="text-xs py-1.5">TOTAL</TableCell>
-              <TableCell className="text-xs py-1.5 text-center">{totais.reunioes_realizadas}</TableCell>
-              <TableCell className="text-xs py-1.5 text-center">{totais.vendas}</TableCell>
-              <TableCell className="text-xs py-1.5 text-center whitespace-nowrap">
+              <TableCell className="text-sm py-1.5">TOTAL</TableCell>
+              <TableCell className="text-sm py-1.5 text-center">{totais.reunioes_realizadas}</TableCell>
+              <TableCell className="text-sm py-1.5 text-center">{totais.vendas}</TableCell>
+              <TableCell className="text-sm py-1.5 text-center whitespace-nowrap">
                 <span className={getIndicatorColor('taxa_conversao', totalTaxaConversao) === 'green' ? "text-emerald-600 font-semibold" : "text-red-600 font-semibold"}>
                   {totalTaxaConversao.toFixed(1)}%{getIndicatorColor('taxa_conversao', totalTaxaConversao) === 'green' ? '✅' : '❌'}
                 </span>

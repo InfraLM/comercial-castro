@@ -55,9 +55,7 @@ serve(async (req) => {
         COUNT(CASE WHEN venda_realizada_sdr = 'Sim' THEN 1 END) as vendas_sdr,
         COUNT(CASE WHEN venda_realizada_sdr = 'Não' OR venda_realizada_sdr IS NULL THEN 1 END) as vendas_closer
       FROM comercial_basemae
-      WHERE data_venda IS NOT NULL 
-        AND data_venda != ''
-        AND TO_DATE(data_venda, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
+      WHERE TO_DATE(data_recebimento, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
       GROUP BY produto_vendido
       ORDER BY COUNT(*) DESC
     `, [dataInicioConv, dataFimConv]);
