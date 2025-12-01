@@ -48,7 +48,8 @@ serve(async (req) => {
     const dataInicioConv = convertDate(data_inicio);
     const dataFimConv = convertDate(data_fim);
 
-    const result = await client.queryObject(`
+    // Query para vendas por produto
+    const produtosResult = await client.queryObject(`
       SELECT 
         produto_vendido as produto,
         COUNT(*) as total,
@@ -60,12 +61,44 @@ serve(async (req) => {
       ORDER BY COUNT(*) DESC
     `, [dataInicioConv, dataFimConv]);
 
-    const response = (result.rows as any[]).map((r: any) => ({
+    // Query para financiamento (apenas Pós-Graduação)
+    const financiamentoResult = await client.queryObject(`
+      SELECT 
+        COALESCE(financiamento, 'Não informado') as financiamento,
+        COUNT(*) as total
+      FROM comercial_basemae
+      WHERE TO_DATE(data_recebimento, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
+        AND UPPER(produto_vendido) LIKE '%POS GRADUA%'
+      GROUP BY financiamento
+    `, [dataInicioConv, dataFimConv]);
+
+    const produtos = (produtosResult.rows as any[]).map((r: any) => ({
       produto: r.produto || 'Não especificado',
       total: Number(r.total) || 0,
       vendas_sdr: Number(r.vendas_sdr) || 0,
       vendas_closer: Number(r.vendas_closer) || 0
     }));
+
+    // Processar dados de financiamento
+    let financiamentoSim = 0;
+    let financiamentoNao = 0;
+    for (const row of financiamentoResult.rows as any[]) {
+      const valor = String(row.financiamento || '').toLowerCase().trim();
+      const total = Number(row.total) || 0;
+      if (valor === 'sim') {
+        financiamentoSim += total;
+      } else {
+        financiamentoNao += total;
+      }
+    }
+
+    const response = {
+      produtos,
+      financiamento: {
+        com_financiamento: financiamentoSim,
+        sem_financiamento: financiamentoNao
+      }
+    };
 
     console.log("Vendas por produto response:", response);
 
@@ -75,7 +108,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Error in fup-forecast-vendas-produto:", error);
-    return new Response(JSON.stringify([]), {
+    return new Response(JSON.stringify({ produtos: [], financiamento: { com_financiamento: 0, sem_financiamento: 0 } }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });

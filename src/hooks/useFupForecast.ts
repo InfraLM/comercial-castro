@@ -45,6 +45,16 @@ export interface VendasProdutoData {
   vendas_closer: number;
 }
 
+export interface FinanciamentoData {
+  com_financiamento: number;
+  sem_financiamento: number;
+}
+
+export interface VendasProdutoResponse {
+  produtos: VendasProdutoData[];
+  financiamento: FinanciamentoData;
+}
+
 export function useFunilComercial(params: FupForecastParams) {
   return useQuery({
     queryKey: ["fup-forecast-funil", params],
@@ -121,7 +131,7 @@ export function useVendasProduto(data_inicio: string, data_fim: string) {
         body: { data_inicio, data_fim }
       });
       if (error) throw error;
-      return data as VendasProdutoData[];
+      return data as VendasProdutoResponse;
     },
     refetchInterval: 60000,
   });
