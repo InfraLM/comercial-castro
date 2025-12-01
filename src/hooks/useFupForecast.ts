@@ -126,3 +126,24 @@ export function useVendasProduto(data_inicio: string, data_fim: string) {
     refetchInterval: 60000,
   });
 }
+
+export interface AIAnalysisData {
+  highs: string[];
+  lows: string[];
+}
+
+export function useAIAnalysis(weekData: any, currentWeek: number, enabled: boolean = true) {
+  return useQuery({
+    queryKey: ["fup-forecast-ai-analysis", weekData, currentWeek],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("fup-forecast-ai-analysis", {
+        body: { weekData, currentWeek }
+      });
+      if (error) throw error;
+      return data.analysis as AIAnalysisData;
+    },
+    enabled,
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000, // Cache por 5 minutos
+  });
+}

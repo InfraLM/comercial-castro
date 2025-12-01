@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.fup-forecast-vendas-produto]
 verify_jwt = false
+
+[functions.fup-forecast-ai-analysis]
+verify_jwt = false

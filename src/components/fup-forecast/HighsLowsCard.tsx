@@ -1,8 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
-import { useFunilComercial, useProdutividadeSDR, useConversaoCloser } from "@/hooks/useFupForecast";
+import { TrendingUp, AlertTriangle, CheckCircle, Sparkles } from "lucide-react";
+import { useFunilComercial, useProdutividadeSDR, useConversaoCloser, useAIAnalysis } from "@/hooks/useFupForecast";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 interface HighsLowsCardProps {
   weekRange: { inicio: string; fim: string };
@@ -11,6 +13,8 @@ interface HighsLowsCardProps {
 }
 
 export function HighsLowsCard({ weekRange, previousWeekRange, currentWeek }: HighsLowsCardProps) {
+  const [useAI, setUseAI] = useState(false);
+  
   const { data: funilData, isLoading: funilLoading } = useFunilComercial({
     data_inicio: weekRange.inicio,
     data_fim: weekRange.fim,
@@ -25,6 +29,19 @@ export function HighsLowsCard({ weekRange, previousWeekRange, currentWeek }: Hig
     data_fim_anterior: previousWeekRange.fim
   });
   const { data: closerData, isLoading: closerLoading } = useConversaoCloser(weekRange.inicio, weekRange.fim);
+
+  const weekData = funilData ? {
+    semana_atual: { ...funilData.semana_atual },
+    semana_anterior: { ...funilData.semana_anterior },
+    produtividade: produtividadeData,
+    closers: closerData,
+  } : null;
+
+  const { data: aiAnalysis, isLoading: aiLoading } = useAIAnalysis(
+    weekData,
+    currentWeek,
+    useAI && weekData !== null
+  );
 
   const isLoading = funilLoading || produtividadeLoading || closerLoading;
 
@@ -41,9 +58,15 @@ export function HighsLowsCard({ weekRange, previousWeekRange, currentWeek }: Hig
     );
   }
 
-  // Calcular Highs e Lows automaticamente
-  const highs: string[] = [];
-  const lows: string[] = [];
+  // Usar análise de IA se disponível, senão calcular automaticamente
+  let highs: string[] = [];
+  let lows: string[] = [];
+
+  if (useAI && aiAnalysis) {
+    highs = aiAnalysis.highs;
+    lows = aiAnalysis.lows;
+  } else {
+    // Calcular Highs e Lows automaticamente
 
   if (funilData) {
     const atual = funilData.semana_atual;
@@ -133,21 +156,34 @@ export function HighsLowsCard({ weekRange, previousWeekRange, currentWeek }: Hig
     }
   }
 
-  // Adicionar mensagens padrão se não houver nenhum insight
-  if (highs.length === 0) {
-    highs.push("Análise em andamento - dados sendo coletados");
-  }
-  if (lows.length === 0) {
-    lows.push("Nenhum ponto de atenção identificado nesta semana");
+    // Adicionar mensagens padrão se não houver nenhum insight
+    if (highs.length === 0) {
+      highs.push("Análise em andamento - dados sendo coletados");
+    }
+    if (lows.length === 0) {
+      lows.push("Nenhum ponto de atenção identificado nesta semana");
+    }
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5" />
-          Highs & Lows - W{currentWeek}
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Highs & Lows - W{currentWeek}
+          </CardTitle>
+          <Button
+            variant={useAI ? "default" : "outline"}
+            size="sm"
+            onClick={() => setUseAI(!useAI)}
+            disabled={aiLoading}
+            className="gap-2"
+          >
+            <Sparkles className="h-4 w-4" />
+            {aiLoading ? "Analisando..." : useAI ? "Análise IA Ativa" : "Ativar Análise IA"}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
