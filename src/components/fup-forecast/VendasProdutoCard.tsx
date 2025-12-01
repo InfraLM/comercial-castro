@@ -2,15 +2,23 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useVendasProduto } from "@/hooks/useFupForecast";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { TrendingUp, TrendingDown } from "lucide-react";
 
 interface VendasProdutoCardProps {
   data_inicio: string;
   data_fim: string;
+  previousWeekRange: { inicio: string; fim: string };
   currentWeek: number;
 }
 
-export function VendasProdutoCard({ data_inicio, data_fim, currentWeek }: VendasProdutoCardProps) {
-  const { data, isLoading } = useVendasProduto(data_inicio, data_fim);
+export function VendasProdutoCard({ data_inicio, data_fim, previousWeekRange, currentWeek }: VendasProdutoCardProps) {
+  const { data, isLoading } = useVendasProduto(
+    data_inicio, 
+    data_fim, 
+    previousWeekRange.inicio, 
+    previousWeekRange.fim
+  );
 
   if (isLoading) {
     return (
@@ -28,6 +36,7 @@ export function VendasProdutoCard({ data_inicio, data_fim, currentWeek }: Vendas
 
   const produtos = data?.produtos || [];
   const financiamento = data?.financiamento || { com_financiamento: 0, sem_financiamento: 0 };
+  const financiamentoAnterior = data?.financiamento_anterior || { com_financiamento: 0, sem_financiamento: 0 };
   
   // Calcular totais de pós-graduação
   const posGraduacaoProdutos = produtos.filter(p => 
@@ -48,6 +57,48 @@ export function VendasProdutoCard({ data_inicio, data_fim, currentWeek }: Vendas
 
   const totalGeral = produtos.reduce((sum, p) => sum + p.total, 0);
   const totalFinanciamento = financiamento.com_financiamento + financiamento.sem_financiamento;
+
+  // Dados para o gráfico de pizza
+  const pieData = [
+    { name: 'Com Financiamento', value: financiamento.com_financiamento },
+    { name: 'Sem Financiamento', value: financiamento.sem_financiamento },
+  ];
+
+  const COLORS = ['hsl(var(--primary))', 'hsl(var(--muted-foreground))'];
+
+  // Função para calcular tendência
+  const getTrendDisplay = (atual: number, anterior: number) => {
+    if (anterior === 0) {
+      if (atual > 0) {
+        return { 
+          percentage: 100, 
+          isPositive: true, 
+          icon: <TrendingUp className="h-4 w-4 text-green-500" /> 
+        };
+      }
+      return null;
+    }
+    
+    const diff = ((atual - anterior) / anterior) * 100;
+    const isPositive = diff > 0;
+    
+    return {
+      percentage: Math.abs(diff).toFixed(1),
+      isPositive,
+      icon: isPositive 
+        ? <TrendingUp className="h-4 w-4 text-green-500" />
+        : <TrendingDown className="h-4 w-4 text-red-500" />
+    };
+  };
+
+  const trendComFinanciamento = getTrendDisplay(
+    financiamento.com_financiamento, 
+    financiamentoAnterior.com_financiamento
+  );
+  const trendSemFinanciamento = getTrendDisplay(
+    financiamento.sem_financiamento, 
+    financiamentoAnterior.sem_financiamento
+  );
 
   return (
     <Card>
@@ -102,31 +153,94 @@ export function VendasProdutoCard({ data_inicio, data_fim, currentWeek }: Vendas
             </Table>
           </div>
           
-          {/* Tabela de Financiamento */}
-          <div className="overflow-x-auto">
-            <h4 className="text-sm font-semibold mb-3 text-muted-foreground">Financiamento - Pós-Graduação</h4>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-[180px]">Tipo de Pagamento</TableHead>
-                  <TableHead className="text-center">Vendas</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow>
-                  <TableCell className="font-medium">Com Financiamento</TableCell>
-                  <TableCell className="text-center">{financiamento.com_financiamento}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Sem Financiamento</TableCell>
-                  <TableCell className="text-center">{financiamento.sem_financiamento}</TableCell>
-                </TableRow>
-                <TableRow className="bg-muted/50 font-bold">
-                  <TableCell>TOTAL PÓS-GRADUAÇÃO</TableCell>
-                  <TableCell className="text-center">{totalFinanciamento}</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
+          {/* Seção de Financiamento */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-semibold text-muted-foreground">Financiamento - Pós-Graduação</h4>
+            
+            {/* Gráfico de Pizza */}
+            {totalFinanciamento > 0 ? (
+              <div className="h-[200px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={2}
+                      dataKey="value"
+                      label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value: number) => [value, 'Vendas']}
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+                Sem dados de financiamento
+              </div>
+            )}
+
+            {/* Tabela de Financiamento com Indicadores */}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[180px]">Tipo de Pagamento</TableHead>
+                    <TableHead className="text-center">Vendas</TableHead>
+                    <TableHead className="text-center">Tendência</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell className="font-medium">Com Financiamento</TableCell>
+                    <TableCell className="text-center">{financiamento.com_financiamento}</TableCell>
+                    <TableCell className="text-center">
+                      {trendComFinanciamento && (
+                        <div className="flex items-center justify-center gap-1">
+                          {trendComFinanciamento.icon}
+                          <span className={trendComFinanciamento.isPositive ? 'text-green-500' : 'text-red-500'}>
+                            {trendComFinanciamento.isPositive ? '+' : '-'}{trendComFinanciamento.percentage}%
+                          </span>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">Sem Financiamento</TableCell>
+                    <TableCell className="text-center">{financiamento.sem_financiamento}</TableCell>
+                    <TableCell className="text-center">
+                      {trendSemFinanciamento && (
+                        <div className="flex items-center justify-center gap-1">
+                          {trendSemFinanciamento.icon}
+                          <span className={trendSemFinanciamento.isPositive ? 'text-green-500' : 'text-red-500'}>
+                            {trendSemFinanciamento.isPositive ? '+' : '-'}{trendSemFinanciamento.percentage}%
+                          </span>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow className="bg-muted/50 font-bold">
+                    <TableCell>TOTAL PÓS-GRADUAÇÃO</TableCell>
+                    <TableCell className="text-center">{totalFinanciamento}</TableCell>
+                    <TableCell className="text-center">-</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </div>
       </CardContent>

@@ -107,6 +107,7 @@ export default function FupForecast() {
       <VendasProdutoCard 
         data_inicio={weekRange.inicio}
         data_fim={weekRange.fim}
+        previousWeekRange={previousWeekRange}
         currentWeek={currentWeek}
       />
 

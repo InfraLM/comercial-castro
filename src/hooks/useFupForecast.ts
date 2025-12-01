@@ -53,6 +53,7 @@ export interface FinanciamentoData {
 export interface VendasProdutoResponse {
   produtos: VendasProdutoData[];
   financiamento: FinanciamentoData;
+  financiamento_anterior: FinanciamentoData;
 }
 
 export function useFunilComercial(params: FupForecastParams) {
@@ -123,12 +124,17 @@ export function useConversaoCloser(data_inicio: string, data_fim: string) {
   });
 }
 
-export function useVendasProduto(data_inicio: string, data_fim: string) {
+export function useVendasProduto(
+  data_inicio: string, 
+  data_fim: string,
+  data_inicio_anterior: string,
+  data_fim_anterior: string
+) {
   return useQuery({
-    queryKey: ["fup-forecast-vendas-produto", data_inicio, data_fim],
+    queryKey: ["fup-forecast-vendas-produto", data_inicio, data_fim, data_inicio_anterior, data_fim_anterior],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("fup-forecast-vendas-produto", {
-        body: { data_inicio, data_fim }
+        body: { data_inicio, data_fim, data_inicio_anterior, data_fim_anterior }
       });
       if (error) throw error;
       return data as VendasProdutoResponse;
