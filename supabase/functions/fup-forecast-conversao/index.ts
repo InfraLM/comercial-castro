@@ -106,6 +106,7 @@ serve(async (req) => {
           COUNT(*) as vendas
         FROM comercial_basemae
         WHERE TO_DATE(data_recebimento, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
+          AND produto_vendido = 'Pos Graduação'
         GROUP BY usuario_preenchimento
       `, [dataInicioConv, dataFimConv]);
 
