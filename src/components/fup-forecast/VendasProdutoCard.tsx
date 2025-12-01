@@ -2,15 +2,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useVendasProduto } from "@/hooks/useFupForecast";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 
 interface VendasProdutoCardProps {
   data_inicio: string;
   data_fim: string;
   currentWeek: number;
 }
-
-const COLORS = ['hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))', '#8884d8', '#82ca9d', '#ffc658'];
 
 export function VendasProdutoCard({ data_inicio, data_fim, currentWeek }: VendasProdutoCardProps) {
   const { data, isLoading } = useVendasProduto(data_inicio, data_fim);
@@ -29,7 +26,8 @@ export function VendasProdutoCard({ data_inicio, data_fim, currentWeek }: Vendas
     );
   }
 
-  const produtos = data || [];
+  const produtos = data?.produtos || [];
+  const financiamento = data?.financiamento || { com_financiamento: 0, sem_financiamento: 0 };
   
   // Calcular totais de pós-graduação
   const posGraduacaoProdutos = produtos.filter(p => 
@@ -49,11 +47,7 @@ export function VendasProdutoCard({ data_inicio, data_fim, currentWeek }: Vendas
   );
 
   const totalGeral = produtos.reduce((sum, p) => sum + p.total, 0);
-
-  const chartData = produtos.map(p => ({
-    name: p.produto?.length > 20 ? p.produto.substring(0, 20) + '...' : p.produto,
-    value: p.total
-  }));
+  const totalFinanciamento = financiamento.com_financiamento + financiamento.sem_financiamento;
 
   return (
     <Card>
@@ -108,34 +102,31 @@ export function VendasProdutoCard({ data_inicio, data_fim, currentWeek }: Vendas
             </Table>
           </div>
           
-          {/* Gráfico de pizza */}
-          <div className="h-[300px]">
-            {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                Nenhuma venda registrada no período
-              </div>
-            )}
+          {/* Tabela de Financiamento */}
+          <div className="overflow-x-auto">
+            <h4 className="text-sm font-semibold mb-3 text-muted-foreground">Financiamento - Pós-Graduação</h4>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[180px]">Tipo de Pagamento</TableHead>
+                  <TableHead className="text-center">Vendas</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell className="font-medium">Com Financiamento</TableCell>
+                  <TableCell className="text-center">{financiamento.com_financiamento}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Sem Financiamento</TableCell>
+                  <TableCell className="text-center">{financiamento.sem_financiamento}</TableCell>
+                </TableRow>
+                <TableRow className="bg-muted/50 font-bold">
+                  <TableCell>TOTAL PÓS-GRADUAÇÃO</TableCell>
+                  <TableCell className="text-center">{totalFinanciamento}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
           </div>
         </div>
       </CardContent>
