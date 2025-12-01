@@ -159,18 +159,36 @@ export function VendasProdutoCard({ data_inicio, data_fim, previousWeekRange, cu
             
             {/* Gráfico de Pizza */}
             {totalFinanciamento > 0 ? (
-              <div className="h-[200px]">
+              <div className="h-[280px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={pieData}
                       cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={80}
+                      cy="40%"
+                      innerRadius={45}
+                      outerRadius={75}
                       paddingAngle={2}
                       dataKey="value"
-                      label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                      labelLine={false}
+                      label={({ cx, cy, midAngle, innerRadius, outerRadius, value, percent }) => {
+                        const RADIAN = Math.PI / 180;
+                        const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                        const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                        const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                        return (
+                          <text 
+                            x={x} 
+                            y={y} 
+                            fill="white" 
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                            className="text-xs font-bold"
+                          >
+                            {value} ({(percent * 100).toFixed(0)}%)
+                          </text>
+                        );
+                      }}
                     >
                       {pieData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -184,12 +202,22 @@ export function VendasProdutoCard({ data_inicio, data_fim, previousWeekRange, cu
                         borderRadius: '8px'
                       }}
                     />
-                    <Legend />
+                    <Legend 
+                      layout="horizontal"
+                      align="center"
+                      verticalAlign="bottom"
+                      wrapperStyle={{ paddingTop: '20px' }}
+                      formatter={(value: string, entry: any) => {
+                        const payload = entry.payload;
+                        const pct = ((payload.value / totalFinanciamento) * 100).toFixed(0);
+                        return `${value}: ${payload.value} (${pct}%)`;
+                      }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+              <div className="h-[280px] flex items-center justify-center text-muted-foreground">
                 Sem dados de financiamento
               </div>
             )}
