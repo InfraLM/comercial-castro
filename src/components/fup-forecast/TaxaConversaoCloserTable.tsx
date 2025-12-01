@@ -1,11 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useConversaoCloser } from "@/hooks/useFupForecast";
 import { getIndicatorColor } from "@/lib/dateUtils";
 import { useUserMapping } from "@/contexts/UserMappingContext";
-import { cn } from "@/lib/utils";
 
 interface TaxaConversaoCloserTableProps {
   data_inicio: string;
@@ -19,25 +17,27 @@ export function TaxaConversaoCloserTable({ data_inicio, data_fim, currentWeek }:
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-64" />
-          <Skeleton className="h-4 w-48" />
+      <Card className="h-full">
+        <CardHeader className="pb-2">
+          <Skeleton className="h-5 w-48" />
+          <Skeleton className="h-3 w-32" />
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-48 w-full" />
         </CardContent>
       </Card>
     );
   }
 
-  const closerData = (data || []).sort((a, b) => {
-    const taxaA = a.reunioes_realizadas === 0 ? 0 : (a.vendas / a.reunioes_realizadas) * 100;
-    const taxaB = b.reunioes_realizadas === 0 ? 0 : (b.vendas / b.reunioes_realizadas) * 100;
-    return taxaB - taxaA;
-  });
+  // Filtrar Murilo e ordenar por taxa de conversão
+  const closerData = (data || [])
+    .filter((closer) => !closer.closer?.toLowerCase().includes('murilo'))
+    .sort((a, b) => {
+      const taxaA = a.reunioes_realizadas === 0 ? 0 : (a.vendas / a.reunioes_realizadas) * 100;
+      const taxaB = b.reunioes_realizadas === 0 ? 0 : (b.vendas / b.reunioes_realizadas) * 100;
+      return taxaB - taxaA;
+    });
   
-  // Calcular totais
   const totais = closerData.reduce(
     (acc, closer) => ({
       reunioes_realizadas: acc.reunioes_realizadas + closer.reunioes_realizadas,
@@ -54,67 +54,54 @@ export function TaxaConversaoCloserTable({ data_inicio, data_fim, currentWeek }:
   const totalTaxaConversao = calcTaxaConversao(totais.vendas, totais.reunioes_realizadas);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Taxa de Conversão Closer - W{currentWeek}</CardTitle>
-        <CardDescription>
+    <Card className="h-full">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Taxa de Conversão Closer - W{currentWeek}</CardTitle>
+        <CardDescription className="text-xs">
           Meta: &gt;25% de conversão
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="min-w-[140px]">Closer</TableHead>
-                <TableHead className="text-center">Reuniões Realizadas</TableHead>
-                <TableHead className="text-center">Vendas</TableHead>
-                <TableHead className="text-center">Taxa de Conversão</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {closerData.map((closer) => {
-                const taxaConversao = calcTaxaConversao(closer.vendas, closer.reunioes_realizadas);
-                const color = getIndicatorColor('taxa_conversao', taxaConversao);
-                
-                return (
-                  <TableRow key={closer.closer}>
-                    <TableCell className="font-medium">{getCloserName(closer.closer)}</TableCell>
-                    <TableCell className="text-center">{closer.reunioes_realizadas}</TableCell>
-                    <TableCell className="text-center">{closer.vendas}</TableCell>
-                    <TableCell className="text-center">
-                      <Badge className={cn(
-                        "font-medium",
-                        color === 'green' 
-                          ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 hover:bg-emerald-500/20"
-                          : "bg-red-500/10 text-red-700 border-red-500/20 hover:bg-red-500/20"
-                      )}>
-                        {taxaConversao.toFixed(2)}% {color === 'green' ? '✅' : '❌'}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+      <CardContent className="pt-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-xs py-2">Closer</TableHead>
+              <TableHead className="text-xs py-2 text-center w-16">Reun.</TableHead>
+              <TableHead className="text-xs py-2 text-center w-16">Vendas</TableHead>
+              <TableHead className="text-xs py-2 text-center w-20">Taxa</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {closerData.map((closer) => {
+              const taxaConversao = calcTaxaConversao(closer.vendas, closer.reunioes_realizadas);
+              const color = getIndicatorColor('taxa_conversao', taxaConversao);
               
-              {/* Linha de totais */}
-              <TableRow className="bg-muted/50 font-bold">
-                <TableCell>TOTAL</TableCell>
-                <TableCell className="text-center">{totais.reunioes_realizadas}</TableCell>
-                <TableCell className="text-center">{totais.vendas}</TableCell>
-                <TableCell className="text-center">
-                  <Badge className={cn(
-                    "font-medium",
-                    getIndicatorColor('taxa_conversao', totalTaxaConversao) === 'green' 
-                      ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 hover:bg-emerald-500/20"
-                      : "bg-red-500/10 text-red-700 border-red-500/20 hover:bg-red-500/20"
-                  )}>
-                    {totalTaxaConversao.toFixed(2)}% {getIndicatorColor('taxa_conversao', totalTaxaConversao) === 'green' ? '✅' : '❌'}
-                  </Badge>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </div>
+              return (
+                <TableRow key={closer.closer}>
+                  <TableCell className="text-xs py-1.5 font-medium">{getCloserName(closer.closer)}</TableCell>
+                  <TableCell className="text-xs py-1.5 text-center">{closer.reunioes_realizadas}</TableCell>
+                  <TableCell className="text-xs py-1.5 text-center">{closer.vendas}</TableCell>
+                  <TableCell className="text-xs py-1.5 text-center">
+                    <span className={color === 'green' ? "text-emerald-600 font-semibold" : "text-red-600 font-semibold"}>
+                      {taxaConversao.toFixed(1)}% {color === 'green' ? '✅' : '❌'}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            
+            <TableRow className="bg-muted/50 font-bold border-t-2">
+              <TableCell className="text-xs py-1.5">TOTAL</TableCell>
+              <TableCell className="text-xs py-1.5 text-center">{totais.reunioes_realizadas}</TableCell>
+              <TableCell className="text-xs py-1.5 text-center">{totais.vendas}</TableCell>
+              <TableCell className="text-xs py-1.5 text-center">
+                <span className={getIndicatorColor('taxa_conversao', totalTaxaConversao) === 'green' ? "text-emerald-600 font-semibold" : "text-red-600 font-semibold"}>
+                  {totalTaxaConversao.toFixed(1)}% {getIndicatorColor('taxa_conversao', totalTaxaConversao) === 'green' ? '✅' : '❌'}
+                </span>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
