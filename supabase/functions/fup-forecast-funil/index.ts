@@ -70,11 +70,12 @@ serve(async (req) => {
       WHERE TO_DATE(dia_registro, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
     `, [dataInicioConv, dataFimConv]);
 
-    // Query para semana atual - vendas
+    // Query para semana atual - vendas (apenas Pós Graduação)
     const vendasAtualResult = await client.queryObject(`
       SELECT COUNT(*) as total_vendas
       FROM comercial_basemae
       WHERE TO_DATE(data_recebimento, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
+        AND UPPER(produto) = 'PÓS GRADUAÇÃO'
     `, [dataInicioConv, dataFimConv]);
 
     // Query para semana anterior - clint_basemae
@@ -96,11 +97,12 @@ serve(async (req) => {
       WHERE TO_DATE(dia_registro, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
     `, [dataInicioAntConv, dataFimAntConv]);
 
-    // Query para semana anterior - vendas
+    // Query para semana anterior - vendas (apenas Pós Graduação)
     const vendasAnteriorResult = await client.queryObject(`
       SELECT COUNT(*) as total_vendas
       FROM comercial_basemae
       WHERE TO_DATE(data_recebimento, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
+        AND UPPER(produto) = 'PÓS GRADUAÇÃO'
     `, [dataInicioAntConv, dataFimAntConv]);
 
     const basemaeAtual = basemaeAtualResult.rows[0] as any || {};

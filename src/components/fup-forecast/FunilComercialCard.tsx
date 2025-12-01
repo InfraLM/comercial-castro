@@ -69,10 +69,37 @@ export function FunilComercialCard({ weekRange, previousWeekRange, currentWeek }
     ];
   };
 
-  const getTrendIcon = (atual: number, anterior: number) => {
-    if (atual > anterior) return <TrendingUp className="h-4 w-4 text-emerald-600" />;
-    if (atual < anterior) return <TrendingDown className="h-4 w-4 text-red-600" />;
-    return <Minus className="h-4 w-4 text-muted-foreground" />;
+  const calcularVariacao = (atual: number, anterior: number): number => {
+    if (anterior === 0) return atual > 0 ? 100 : 0;
+    return ((atual - anterior) / anterior) * 100;
+  };
+
+  const getTrendDisplay = (atual: number, anterior: number) => {
+    const variacao = calcularVariacao(atual, anterior);
+    const variacaoFormatada = Math.abs(variacao).toFixed(1);
+    
+    if (atual > anterior) {
+      return (
+        <div className="flex items-center gap-1 text-emerald-600">
+          <TrendingUp className="h-4 w-4" />
+          <span className="text-xs font-medium">+{variacaoFormatada}%</span>
+        </div>
+      );
+    }
+    if (atual < anterior) {
+      return (
+        <div className="flex items-center gap-1 text-red-600">
+          <TrendingDown className="h-4 w-4" />
+          <span className="text-xs font-medium">-{variacaoFormatada}%</span>
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center gap-1 text-muted-foreground">
+        <Minus className="h-4 w-4" />
+        <span className="text-xs font-medium">0%</span>
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -123,8 +150,8 @@ export function FunilComercialCard({ weekRange, previousWeekRange, currentWeek }
                     {metrica.percentualAtual !== null ? `${metrica.percentualAtual.toFixed(1)}%` : '-'}
                   </TableCell>
                   <TableCell className="text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      {getTrendIcon(metrica.atual, metrica.anterior)}
+                    <div className="flex items-center justify-center">
+                      {getTrendDisplay(metrica.atual, metrica.anterior)}
                     </div>
                   </TableCell>
                 </TableRow>
