@@ -29,9 +29,12 @@ export function TaxaConversaoCloserTable({ data_inicio, data_fim, currentWeek }:
     );
   }
 
-  // Filtrar Murilo e ordenar por taxa de conversão
+  // Filtrar Murilo e Weber, ordenar por taxa de conversão
   const closerData = (data || [])
-    .filter((closer) => !closer.closer?.toLowerCase().includes('murilo'))
+    .filter((closer) => 
+      !closer.closer?.toLowerCase().includes('murilo') && 
+      !closer.closer?.toLowerCase().includes('weber')
+    )
     .sort((a, b) => {
       const taxaA = a.reunioes_realizadas === 0 ? 0 : (a.vendas / a.reunioes_realizadas) * 100;
       const taxaB = b.reunioes_realizadas === 0 ? 0 : (b.vendas / b.reunioes_realizadas) * 100;
