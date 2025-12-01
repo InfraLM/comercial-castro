@@ -80,8 +80,16 @@ export function ProdutividadeSDRTable({ weekRange, previousWeekRange, currentWee
     return marcadas - realizadas;
   };
 
+  const calcNoShowPercent = (marcadas: number, realizadas: number) => {
+    if (marcadas === 0) return 0;
+    const noShow = marcadas - realizadas;
+    return (noShow / marcadas) * 100;
+  };
+
   const totalNoShowAtual = calcNoShow(totaisAtual.reunioes_marcadas, totaisAtual.reunioes_realizadas);
   const totalNoShowAnterior = calcNoShow(totaisAnterior.reunioes_marcadas, totaisAnterior.reunioes_realizadas);
+  const totalNoShowPercentAtual = calcNoShowPercent(totaisAtual.reunioes_marcadas, totaisAtual.reunioes_realizadas);
+  const totalNoShowPercentAnterior = calcNoShowPercent(totaisAnterior.reunioes_marcadas, totaisAnterior.reunioes_realizadas);
 
   return (
     <Card>
@@ -106,13 +114,15 @@ export function ProdutividadeSDRTable({ weekRange, previousWeekRange, currentWee
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sdrDataAtual.map((sdr) => {
+                {sdrDataAtual.map((sdr) => {
                 const anterior = anteriorMap.get(sdr.sdr) || { 
                   ligacoes: 0, tempo_segundos: 0, whatsapp: 0, 
                   reunioes_marcadas: 0, reunioes_realizadas: 0, sdr: sdr.sdr 
                 };
                 const noShowAtual = calcNoShow(sdr.reunioes_marcadas, sdr.reunioes_realizadas);
-                const noShowAnterior = calcNoShow(anterior.reunioes_marcadas, anterior.reunioes_realizadas);
+                const noShowPercentAtual = calcNoShowPercent(sdr.reunioes_marcadas, sdr.reunioes_realizadas);
+                const noShowPercentAnterior = calcNoShowPercent(anterior.reunioes_marcadas, anterior.reunioes_realizadas);
+                const variacaoPercent = noShowPercentAtual - noShowPercentAnterior;
                 
                 return (
                   <TableRow key={sdr.sdr}>
@@ -123,9 +133,14 @@ export function ProdutividadeSDRTable({ weekRange, previousWeekRange, currentWee
                     <TableCell className="text-center">{sdr.reunioes_marcadas}</TableCell>
                     <TableCell className="text-center">{sdr.reunioes_realizadas}</TableCell>
                     <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <span>{noShowAtual}</span>
-                        {getTrendIcon(noShowAtual, noShowAnterior, true)}
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="font-semibold">{noShowAtual} ({noShowPercentAtual.toFixed(1)}%)</span>
+                        <div className="flex items-center gap-1 text-xs">
+                          {getTrendIcon(noShowPercentAtual, noShowPercentAnterior, true)}
+                          <span className={variacaoPercent < 0 ? "text-emerald-600" : variacaoPercent > 0 ? "text-red-600" : "text-muted-foreground"}>
+                            {variacaoPercent > 0 ? "+" : ""}{variacaoPercent.toFixed(1)}%
+                          </span>
+                        </div>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -141,9 +156,14 @@ export function ProdutividadeSDRTable({ weekRange, previousWeekRange, currentWee
                 <TableCell className="text-center">{totaisAtual.reunioes_marcadas}</TableCell>
                 <TableCell className="text-center">{totaisAtual.reunioes_realizadas}</TableCell>
                 <TableCell className="text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <span>{totalNoShowAtual}</span>
-                    {getTrendIcon(totalNoShowAtual, totalNoShowAnterior, true)}
+                  <div className="flex flex-col items-center gap-1">
+                    <span>{totalNoShowAtual} ({totalNoShowPercentAtual.toFixed(1)}%)</span>
+                    <div className="flex items-center gap-1 text-xs">
+                      {getTrendIcon(totalNoShowPercentAtual, totalNoShowPercentAnterior, true)}
+                      <span className={(totalNoShowPercentAtual - totalNoShowPercentAnterior) < 0 ? "text-emerald-600" : (totalNoShowPercentAtual - totalNoShowPercentAnterior) > 0 ? "text-red-600" : "text-muted-foreground"}>
+                        {(totalNoShowPercentAtual - totalNoShowPercentAnterior) > 0 ? "+" : ""}{(totalNoShowPercentAtual - totalNoShowPercentAnterior).toFixed(1)}%
+                      </span>
+                    </div>
                   </div>
                 </TableCell>
               </TableRow>
