@@ -22,11 +22,18 @@ export function ProdutividadeSDRTable({ weekRange, previousWeekRange, currentWee
   const { getSdrName } = useUserMapping();
 
   const getTrendIcon = (atual: number, anterior: number, inverso: boolean = false) => {
-    const melhorou = inverso ? atual < anterior : atual > anterior;
-    const piorou = inverso ? atual > anterior : atual < anterior;
+    const subiu = atual > anterior;
+    const desceu = atual < anterior;
     
-    if (melhorou) return <TrendingUp className="h-4 w-4 text-emerald-600" />;
-    if (piorou) return <TrendingDown className="h-4 w-4 text-red-600" />;
+    if (inverso) {
+      // Para métricas inversas (No Show), descendo é bom (verde), subindo é ruim (vermelho)
+      if (desceu) return <TrendingDown className="h-4 w-4 text-emerald-600" />;
+      if (subiu) return <TrendingUp className="h-4 w-4 text-red-600" />;
+    } else {
+      // Para métricas normais, subindo é bom (verde), descendo é ruim (vermelho)
+      if (subiu) return <TrendingUp className="h-4 w-4 text-emerald-600" />;
+      if (desceu) return <TrendingDown className="h-4 w-4 text-red-600" />;
+    }
     return <Minus className="h-4 w-4 text-muted-foreground" />;
   };
 
