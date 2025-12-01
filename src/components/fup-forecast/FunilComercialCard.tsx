@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Users, Phone, Handshake, Calendar, CheckCircle, DollarSign } from "lucide-react";
 import { useFunilComercial, FunilData } from "@/hooks/useFupForecast";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +14,10 @@ interface MetricaFunil {
   nome: string;
   atual: number;
   anterior: number;
-  percentualAtual: number | null;
+  percentualConversao: number | null;
+  icon: React.ReactNode;
+  color: string;
+  bgColor: string;
 }
 
 export function FunilComercialCard({ weekRange, previousWeekRange, currentWeek }: FunilComercialCardProps) {
@@ -34,37 +36,55 @@ export function FunilComercialCard({ weekRange, previousWeekRange, currentWeek }
         nome: "Leads Recebidos",
         atual: atual.leads_recebido,
         anterior: anterior.leads_recebido,
-        percentualAtual: null
+        percentualConversao: null,
+        icon: <Users className="h-6 w-6" />,
+        color: "text-blue-600",
+        bgColor: "bg-blue-100"
       },
       {
         nome: "Prospecção",
         atual: atual.prospeccao,
         anterior: anterior.prospeccao,
-        percentualAtual: safeDiv(atual.prospeccao, atual.leads_recebido)
+        percentualConversao: safeDiv(atual.prospeccao, atual.leads_recebido),
+        icon: <Phone className="h-6 w-6" />,
+        color: "text-purple-600",
+        bgColor: "bg-purple-100"
       },
       {
         nome: "Conexão",
         atual: atual.conexao,
         anterior: anterior.conexao,
-        percentualAtual: safeDiv(atual.conexao, atual.prospeccao)
+        percentualConversao: safeDiv(atual.conexao, atual.prospeccao),
+        icon: <Handshake className="h-6 w-6" />,
+        color: "text-indigo-600",
+        bgColor: "bg-indigo-100"
       },
       {
         nome: "Reuniões Marcadas",
         atual: atual.reunioes_marcadas,
         anterior: anterior.reunioes_marcadas,
-        percentualAtual: safeDiv(atual.reunioes_marcadas, atual.conexao)
+        percentualConversao: safeDiv(atual.reunioes_marcadas, atual.conexao),
+        icon: <Calendar className="h-6 w-6" />,
+        color: "text-amber-600",
+        bgColor: "bg-amber-100"
       },
       {
         nome: "Reuniões Realizadas",
         atual: atual.reunioes_realizadas,
         anterior: anterior.reunioes_realizadas,
-        percentualAtual: safeDiv(atual.reunioes_realizadas, atual.reunioes_marcadas)
+        percentualConversao: safeDiv(atual.reunioes_realizadas, atual.reunioes_marcadas),
+        icon: <CheckCircle className="h-6 w-6" />,
+        color: "text-emerald-600",
+        bgColor: "bg-emerald-100"
       },
       {
         nome: "Vendas",
         atual: atual.vendas,
         anterior: anterior.vendas,
-        percentualAtual: safeDiv(atual.vendas, atual.reunioes_realizadas)
+        percentualConversao: safeDiv(atual.vendas, atual.reunioes_realizadas),
+        icon: <DollarSign className="h-6 w-6" />,
+        color: "text-green-600",
+        bgColor: "bg-green-100"
       }
     ];
   };
@@ -82,7 +102,7 @@ export function FunilComercialCard({ weekRange, previousWeekRange, currentWeek }
       return (
         <div className="flex items-center gap-1 text-emerald-600">
           <TrendingUp className="h-4 w-4" />
-          <span className="text-xs font-medium">+{variacaoFormatada}%</span>
+          <span className="text-sm font-semibold">+{variacaoFormatada}%</span>
         </div>
       );
     }
@@ -90,29 +110,30 @@ export function FunilComercialCard({ weekRange, previousWeekRange, currentWeek }
       return (
         <div className="flex items-center gap-1 text-red-600">
           <TrendingDown className="h-4 w-4" />
-          <span className="text-xs font-medium">-{variacaoFormatada}%</span>
+          <span className="text-sm font-semibold">-{variacaoFormatada}%</span>
         </div>
       );
     }
     return (
       <div className="flex items-center gap-1 text-muted-foreground">
         <Minus className="h-4 w-4" />
-        <span className="text-xs font-medium">0%</span>
+        <span className="text-sm font-semibold">0%</span>
       </div>
     );
   };
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-64" />
-          <Skeleton className="h-4 w-48" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-64 w-full" />
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-64" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full rounded-xl" />
+          ))}
+        </div>
+      </div>
     );
   }
 
@@ -120,46 +141,55 @@ export function FunilComercialCard({ weekRange, previousWeekRange, currentWeek }
     ? calcularMetricas(data.semana_atual, data.semana_anterior)
     : [];
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          Funil Comercial - Semana W{currentWeek}
-        </CardTitle>
-        <CardDescription>
-          Comparativo com W{currentWeek - 1}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="min-w-[140px]">Métrica</TableHead>
-                <TableHead className="text-center">Quantidade</TableHead>
-                <TableHead className="text-center">% Conversão</TableHead>
-                <TableHead className="text-center">Tendência</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {metricas.map((metrica, index) => (
-                <TableRow key={metrica.nome}>
-                  <TableCell className="font-medium">{metrica.nome}</TableCell>
-                  <TableCell className="text-center font-semibold">{metrica.atual.toLocaleString('pt-BR')}</TableCell>
-                  <TableCell className="text-center">
-                    {metrica.percentualAtual !== null ? `${metrica.percentualAtual.toFixed(1)}%` : '-'}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex items-center justify-center">
-                      {getTrendDisplay(metrica.atual, metrica.anterior)}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+  const topRow = metricas.slice(0, 3);
+  const bottomRow = metricas.slice(3, 6);
+
+  const MetricCard = ({ metrica }: { metrica: MetricaFunil }) => (
+    <Card className="relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.02]">
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <p className="text-sm font-medium text-muted-foreground mb-1">{metrica.nome}</p>
+            <p className="text-3xl font-bold tracking-tight">{metrica.atual.toLocaleString('pt-BR')}</p>
+            {metrica.percentualConversao !== null && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Conv: {metrica.percentualConversao.toFixed(1)}%
+              </p>
+            )}
+          </div>
+          <div className={cn("p-3 rounded-xl", metrica.bgColor)}>
+            <div className={metrica.color}>
+              {metrica.icon}
+            </div>
+          </div>
+        </div>
+        <div className="absolute bottom-3 right-4">
+          {getTrendDisplay(metrica.atual, metrica.anterior)}
         </div>
       </CardContent>
     </Card>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Funil Comercial - Semana W{currentWeek}</h2>
+          <p className="text-sm text-muted-foreground">Comparativo com W{currentWeek - 1}</p>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {topRow.map((metrica) => (
+          <MetricCard key={metrica.nome} metrica={metrica} />
+        ))}
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {bottomRow.map((metrica) => (
+          <MetricCard key={metrica.nome} metrica={metrica} />
+        ))}
+      </div>
+    </div>
   );
 }
