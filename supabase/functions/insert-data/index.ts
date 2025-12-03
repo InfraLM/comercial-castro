@@ -6,6 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Maximum safe string length for PostgreSQL wire protocol
+const MAX_STRING_LENGTH = 50000;
+
 // Helper function to convert BigInt to Number for JSON serialization
 function convertBigInt(obj: any): any {
   if (obj === null || obj === undefined) {
@@ -27,6 +30,33 @@ function convertBigInt(obj: any): any {
   return obj;
 }
 
+// Split large text columns and identify which need chunking
+function processDataForInsert(data: Record<string, any>): {
+  initialData: Record<string, any>;
+  largeTextColumns: { column: string; chunks: string[] }[];
+} {
+  const initialData: Record<string, any> = {};
+  const largeTextColumns: { column: string; chunks: string[] }[] = [];
+
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === 'string' && value.length > MAX_STRING_LENGTH) {
+      // Store empty string initially, will update in chunks
+      initialData[key] = '';
+      
+      // Split into chunks
+      const chunks: string[] = [];
+      for (let i = 0; i < value.length; i += MAX_STRING_LENGTH) {
+        chunks.push(value.slice(i, i + MAX_STRING_LENGTH));
+      }
+      largeTextColumns.push({ column: key, chunks });
+    } else {
+      initialData[key] = value;
+    }
+  }
+
+  return { initialData, largeTextColumns };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -38,7 +68,7 @@ serve(async (req) => {
   try {
     const { tableName, data, webhookUrl } = await req.json();
     
-    console.log('Inserting data into table:', { tableName, data, hasWebhook: !!webhookUrl });
+    console.log('Inserting data into table:', tableName, 'columns:', Object.keys(data));
 
     if (!tableName || !data) {
       throw new Error('tableName and data are required');
@@ -55,13 +85,7 @@ serve(async (req) => {
       throw new Error('Database configuration is incomplete');
     }
 
-    console.log('DB Config:', {
-      dbHost,
-      dbPort,
-      dbName,
-      dbUser,
-      dbSchema
-    });
+    console.log('DB Config:', { dbHost, dbPort, dbName, dbUser, dbSchema });
 
     // Try to connect with TLS first
     try {
@@ -80,10 +104,9 @@ serve(async (req) => {
       await client.connect();
       console.log('Connected to database with TLS');
     } catch (tlsError) {
-      console.error('TLS connection failed with message:', (tlsError as Error).message);
+      console.error('TLS connection failed:', (tlsError as Error).message);
       console.log('Defaulting to non-encrypted connection');
       
-      // Fallback to non-TLS connection
       client = new Client({
         user: dbUser,
         database: dbName,
@@ -94,41 +117,64 @@ serve(async (req) => {
       await client.connect();
     }
 
-    console.log('Executing insert query');
+    // Process data to handle large text columns
+    const { initialData, largeTextColumns } = processDataForInsert(data);
+    
+    console.log('Large text columns to chunk:', largeTextColumns.map(c => c.column));
 
-    // Build the INSERT query
-    const columns = Object.keys(data);
-    const values = Object.values(data);
+    // Build the initial INSERT query with parameterized values
+    const columns = Object.keys(initialData);
+    const values = Object.values(initialData);
+    const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ');
     
-    // Escape string values properly for direct SQL insertion (handles large payloads)
-    const escapedValues = values.map(val => {
-      if (val === null || val === undefined) {
-        return 'NULL';
-      }
-      if (typeof val === 'string') {
-        // Escape single quotes by doubling them and wrap in quotes
-        return `'${val.replace(/'/g, "''")}'`;
-      }
-      if (typeof val === 'number' || typeof val === 'bigint') {
-        return String(val);
-      }
-      if (typeof val === 'boolean') {
-        return val ? 'TRUE' : 'FALSE';
-      }
-      // For other types, convert to string and escape
-      return `'${String(val).replace(/'/g, "''")}'`;
-    });
-    
-    const query = `
+    const insertQuery = `
       INSERT INTO ${dbSchema}.${tableName} (${columns.join(', ')})
-      VALUES (${escapedValues.join(', ')})
+      VALUES (${placeholders})
       RETURNING *
     `;
 
-    const result = await client.queryObject(query);
-    const convertedResult = convertBigInt(result.rows);
+    console.log('Executing initial insert');
+    const result = await client.queryObject(insertQuery, values);
+    let insertedRow = result.rows[0] as Record<string, any>;
+    
+    console.log('Initial insert successful');
 
-    console.log('Insert successful, rows inserted:', convertedResult.length);
+    // If there are large text columns, update them in chunks
+    if (largeTextColumns.length > 0 && insertedRow) {
+      // Get the primary key for updates (assuming 'id' or first column returned)
+      const pkColumn = 'dia_registro'; // Use dia_registro as identifier for clint_text
+      const pkValue = insertedRow[pkColumn] || data[pkColumn];
+      
+      for (const { column, chunks } of largeTextColumns) {
+        console.log(`Updating ${column} in ${chunks.length} chunks`);
+        
+        for (let i = 0; i < chunks.length; i++) {
+          const chunk = chunks[i];
+          const updateQuery = `
+            UPDATE ${dbSchema}.${tableName}
+            SET ${column} = ${column} || $1
+            WHERE ${pkColumn} = $2
+          `;
+          await client.queryObject(updateQuery, [chunk, pkValue]);
+        }
+        
+        console.log(`Finished updating ${column}`);
+      }
+      
+      // Fetch the final row with complete data
+      const selectQuery = `
+        SELECT * FROM ${dbSchema}.${tableName}
+        WHERE ${pkColumn} = $1
+        LIMIT 1
+      `;
+      const finalResult = await client.queryObject(selectQuery, [pkValue]);
+      if (finalResult.rows.length > 0) {
+        insertedRow = finalResult.rows[0] as Record<string, any>;
+      }
+    }
+
+    const convertedResult = convertBigInt(insertedRow);
+    console.log('Insert completed successfully');
 
     // If webhook URL is provided, send the data there
     if (webhookUrl) {
@@ -136,26 +182,23 @@ serve(async (req) => {
       try {
         const webhookResponse = await fetch(webhookUrl, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             tableName,
-            data: convertedResult[0] || data,
+            data: convertedResult || data,
             timestamp: new Date().toISOString(),
           }),
         });
         console.log('Webhook response status:', webhookResponse.status);
       } catch (webhookError) {
         console.error('Webhook error:', webhookError);
-        // Don't fail the insert if webhook fails
       }
     }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        data: convertedResult[0] || data,
+        data: convertedResult || data,
         message: 'Data inserted successfully'
       }),
       { 
