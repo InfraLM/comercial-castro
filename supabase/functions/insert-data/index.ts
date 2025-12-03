@@ -99,15 +99,33 @@ serve(async (req) => {
     // Build the INSERT query
     const columns = Object.keys(data);
     const values = Object.values(data);
-    const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ');
+    
+    // Escape string values properly for direct SQL insertion (handles large payloads)
+    const escapedValues = values.map(val => {
+      if (val === null || val === undefined) {
+        return 'NULL';
+      }
+      if (typeof val === 'string') {
+        // Escape single quotes by doubling them and wrap in quotes
+        return `'${val.replace(/'/g, "''")}'`;
+      }
+      if (typeof val === 'number' || typeof val === 'bigint') {
+        return String(val);
+      }
+      if (typeof val === 'boolean') {
+        return val ? 'TRUE' : 'FALSE';
+      }
+      // For other types, convert to string and escape
+      return `'${String(val).replace(/'/g, "''")}'`;
+    });
     
     const query = `
       INSERT INTO ${dbSchema}.${tableName} (${columns.join(', ')})
-      VALUES (${placeholders})
+      VALUES (${escapedValues.join(', ')})
       RETURNING *
     `;
 
-    const result = await client.queryObject(query, values);
+    const result = await client.queryObject(query);
     const convertedResult = convertBigInt(result.rows);
 
     console.log('Insert successful, rows inserted:', convertedResult.length);
