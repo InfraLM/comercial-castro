@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Save, Loader2, CalendarIcon, Users, Target, Zap, Phone, MessageCircle, Clock, BarChart3, AlertTriangle } from "lucide-react";
+import { Save, Loader2, CalendarIcon, Users, Target, Zap, Phone, MessageCircle, Clock, BarChart3, AlertTriangle, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useUserMapping } from "@/contexts/UserMappingContext";
@@ -37,6 +38,13 @@ export function AdminClintRegistration() {
 
   const [sdrData, setSdrData] = useState<Record<string, { ligacoes: string; whatsapp: string; tempo: string }>>({});
 
+  // Text registration states
+  const [txtSemFiltro, setTxtSemFiltro] = useState("");
+  const [txtComFiltro, setTxtComFiltro] = useState("");
+  const [isLoadingText, setIsLoadingText] = useState(false);
+  const [showTextDuplicateAlert, setShowTextDuplicateAlert] = useState(false);
+  const isSubmittingText = useRef(false);
+
   const checkForDuplicates = async (diaRegistro: string): Promise<{ basemae: boolean; sdrCount: number }> => {
     try {
       // Check for existing basemae record
@@ -62,6 +70,22 @@ export function AdminClintRegistration() {
     } catch (error) {
       console.error('Error checking duplicates:', error);
       return { basemae: false, sdrCount: 0 };
+    }
+  };
+
+  const checkTextDuplicates = async (diaRegistro: string): Promise<boolean> => {
+    try {
+      const { data } = await supabase.functions.invoke('external-db-query', {
+        body: {
+          query: `SELECT COUNT(*) as count FROM clint_text WHERE dia_registro = $1`,
+          params: [diaRegistro],
+        },
+      });
+
+      return data?.data?.[0]?.count > 0;
+    } catch (error) {
+      console.error('Error checking text duplicates:', error);
+      return false;
     }
   };
 
@@ -161,6 +185,64 @@ export function AdminClintRegistration() {
     }
   };
 
+  const handleSaveTextRegistro = async (forceInsert = false) => {
+    // Prevent double submissions
+    if (isSubmittingText.current || isLoadingText) {
+      console.log('Text submission already in progress, ignoring...');
+      return;
+    }
+
+    isSubmittingText.current = true;
+    setIsLoadingText(true);
+
+    try {
+      const diaRegistro = format(date, "dd/MM/yyyy");
+
+      // Check for duplicates first (unless forcing insert)
+      if (!forceInsert) {
+        const hasDuplicate = await checkTextDuplicates(diaRegistro);
+        if (hasDuplicate) {
+          setShowTextDuplicateAlert(true);
+          setIsLoadingText(false);
+          isSubmittingText.current = false;
+          return;
+        }
+      }
+
+      const textData = {
+        dia_registro: diaRegistro,
+        txt: txtSemFiltro || "",
+        txt_filtro: txtComFiltro || "",
+      };
+
+      console.log('Inserting text data:', textData);
+
+      const { error } = await supabase.functions.invoke('insert-data', {
+        body: {
+          tableName: 'clint_text',
+          data: textData,
+        },
+      });
+
+      if (error) {
+        throw new Error(`Erro ao salvar texto: ${error.message}`);
+      }
+
+      toast.success("Texto Clint salvo com sucesso!");
+
+      // Clear text fields
+      setTxtSemFiltro("");
+      setTxtComFiltro("");
+
+    } catch (error) {
+      console.error('Error saving text registro:', error);
+      toast.error(error instanceof Error ? error.message : "Erro ao salvar texto");
+    } finally {
+      setIsLoadingText(false);
+      isSubmittingText.current = false;
+    }
+  };
+
   const handleSdrDataChange = (email: string, field: string, value: string) => {
     setSdrData(prev => ({
       ...prev,
@@ -240,6 +322,64 @@ export function AdminClintRegistration() {
               />
             </PopoverContent>
           </Popover>
+        </CardContent>
+      </Card>
+
+      {/* Text Registration Card */}
+      <Card className="border-0 shadow-lg">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <FileText className="h-4 w-4 text-primary" />
+            Registro de Texto Clint
+          </CardTitle>
+          <CardDescription>Adicione os textos para processamento na tabela clint_text</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="txtSemFiltro" className="text-sm font-medium">
+              Txt sem filtro
+            </Label>
+            <Textarea
+              id="txtSemFiltro"
+              value={txtSemFiltro}
+              onChange={(e) => setTxtSemFiltro(e.target.value)}
+              placeholder="Cole ou digite o texto sem filtro aqui..."
+              className="min-h-[200px] resize-y"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="txtComFiltro" className="text-sm font-medium">
+              Txt com filtro
+            </Label>
+            <Textarea
+              id="txtComFiltro"
+              value={txtComFiltro}
+              onChange={(e) => setTxtComFiltro(e.target.value)}
+              placeholder="Cole ou digite o texto com filtro aqui..."
+              className="min-h-[200px] resize-y"
+            />
+          </div>
+
+          <div className="flex justify-end">
+            <Button 
+              onClick={() => handleSaveTextRegistro()} 
+              disabled={isLoadingText}
+              className="shadow-md"
+            >
+              {isLoadingText ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Salvar Texto Clint
+                </>
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -434,6 +574,31 @@ export function AdminClintRegistration() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => handleSaveRegistro(true)}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              Inserir Mesmo Assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Text Duplicate Alert Dialog */}
+      <AlertDialog open={showTextDuplicateAlert} onOpenChange={setShowTextDuplicateAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="h-5 w-5" />
+              Texto Duplicado Detectado
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>Já existe um registro de texto para a data <strong>{format(date, "dd/MM/yyyy")}</strong>.</p>
+              <p className="pt-2">Deseja inserir um novo registro mesmo assim? Isso pode criar dados duplicados.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => handleSaveTextRegistro(true)}
               className="bg-amber-600 hover:bg-amber-700"
             >
               Inserir Mesmo Assim
