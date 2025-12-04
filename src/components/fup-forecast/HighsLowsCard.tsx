@@ -1,13 +1,68 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, CheckCircle, Sparkles } from "lucide-react";
-import { useFunilComercial, useProdutividadeSDR, useConversaoCloser, useAIAnalysis } from "@/hooks/useFupForecast";
+import { AlertTriangle, CheckCircle, BarChart3 } from "lucide-react";
+import { useFunilComercial, useProdutividadeSDR, useConversaoCloser } from "@/hooks/useFupForecast";
 import { cn } from "@/lib/utils";
 
 interface HighsLowsCardProps {
   weekRange: { inicio: string; fim: string };
   previousWeekRange: { inicio: string; fim: string };
   currentWeek: number;
+}
+
+// Função de análise local baseada em dados (sem IA)
+function buildLocalAnalysis(funilData: any, produtividadeData: any, closerData: any) {
+  const highs: string[] = [];
+  const lows: string[] = [];
+
+  if (!funilData) return { highs: ["Dados insuficientes"], lows: ["Dados insuficientes"] };
+
+  const atual = funilData.semana_atual;
+  const anterior = funilData.semana_anterior;
+
+  // Taxa de conversão reuniões
+  const taxaConversaoAtual = atual.reunioes_marcadas > 0 
+    ? (atual.reunioes_realizadas / atual.reunioes_marcadas) * 100 : 0;
+  const taxaConversaoAnterior = anterior.reunioes_marcadas > 0 
+    ? (anterior.reunioes_realizadas / anterior.reunioes_marcadas) * 100 : 0;
+
+  if (taxaConversaoAtual > taxaConversaoAnterior) {
+    highs.push(`Taxa de conversão de reuniões melhorou: ${taxaConversaoAtual.toFixed(1)}% vs ${taxaConversaoAnterior.toFixed(1)}%`);
+  } else if (taxaConversaoAtual < taxaConversaoAnterior) {
+    lows.push(`Taxa de conversão de reuniões caiu: ${taxaConversaoAtual.toFixed(1)}% vs ${taxaConversaoAnterior.toFixed(1)}%`);
+  }
+
+  // Vendas
+  if (atual.vendas > anterior.vendas) {
+    highs.push(`Vendas aumentaram: ${atual.vendas} vs ${anterior.vendas} da semana anterior`);
+  } else if (atual.vendas < anterior.vendas) {
+    lows.push(`Vendas diminuíram: ${atual.vendas} vs ${anterior.vendas} da semana anterior`);
+  }
+
+  // Leads
+  if (atual.leads_recebido > anterior.leads_recebido) {
+    highs.push(`Volume de leads aumentou: ${atual.leads_recebido} recebidos`);
+  } else if (atual.leads_recebido < anterior.leads_recebido) {
+    lows.push(`Volume de leads diminuiu: ${atual.leads_recebido} vs ${anterior.leads_recebido}`);
+  }
+
+  // No-show rate
+  const noShowAtual = atual.reunioes_marcadas > 0 
+    ? ((atual.reunioes_marcadas - atual.reunioes_realizadas) / atual.reunioes_marcadas) * 100 : 0;
+  const noShowAnterior = anterior.reunioes_marcadas > 0 
+    ? ((anterior.reunioes_marcadas - anterior.reunioes_realizadas) / anterior.reunioes_marcadas) * 100 : 0;
+
+  if (noShowAtual < noShowAnterior) {
+    highs.push(`Taxa de no-show melhorou: ${noShowAtual.toFixed(1)}% vs ${noShowAnterior.toFixed(1)}%`);
+  } else if (noShowAtual > noShowAnterior) {
+    lows.push(`Taxa de no-show aumentou: ${noShowAtual.toFixed(1)}% vs ${noShowAnterior.toFixed(1)}%`);
+  }
+
+  // Garantir pelo menos um item em cada lista
+  if (highs.length === 0) highs.push("Dados estáveis em relação à semana anterior");
+  if (lows.length === 0) lows.push("Sem pontos críticos identificados nesta semana");
+
+  return { highs, lows };
 }
 
 export function HighsLowsCard({ weekRange, previousWeekRange, currentWeek }: HighsLowsCardProps) {
@@ -26,28 +81,18 @@ export function HighsLowsCard({ weekRange, previousWeekRange, currentWeek }: Hig
   });
   const { data: closerData, isLoading: closerLoading } = useConversaoCloser(weekRange.inicio, weekRange.fim);
 
-  const weekData = funilData ? {
-    semana_atual: { ...funilData.semana_atual },
-    semana_anterior: { ...funilData.semana_anterior },
-    produtividade: produtividadeData,
-    closers: closerData,
-  } : null;
-
-  const { data: aiAnalysis, isLoading: aiLoading } = useAIAnalysis(
-    weekData,
-    currentWeek,
-    weekData !== null
-  );
-
   const isLoading = funilLoading || produtividadeLoading || closerLoading;
 
-  if (isLoading || aiLoading) {
+  // Análise local (sem IA) - temporariamente desabilitada
+  const analysis = buildLocalAnalysis(funilData, produtividadeData, closerData);
+
+  if (isLoading) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            {aiLoading ? "Analisando dados com IA..." : "Carregando..."}
+            <BarChart3 className="h-5 w-5 text-primary" />
+            Carregando...
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -57,17 +102,15 @@ export function HighsLowsCard({ weekRange, previousWeekRange, currentWeek }: Hig
     );
   }
 
-  // Usar análise de IA
-  const highs: string[] = aiAnalysis?.highs || ["Análise em andamento - dados sendo processados"];
-  const lows: string[] = aiAnalysis?.lows || ["Aguardando análise completa dos dados"];
-
+  const highs = analysis.highs;
+  const lows = analysis.lows;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary" />
-          Análise Semanal com IA - W{currentWeek}
+          <BarChart3 className="h-5 w-5 text-primary" />
+          Análise Semanal - W{currentWeek}
         </CardTitle>
       </CardHeader>
       <CardContent>
