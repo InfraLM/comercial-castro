@@ -14,7 +14,7 @@ async function fetchSDRData(client: Client, dataInicio: string, dataFim: string)
       COALESCE(SUM(cs.ligacoes), 0) as ligacoes,
       COALESCE(SUM(EXTRACT(EPOCH FROM cs.tempo::interval)), 0) as tempo_segundos,
       COALESCE(SUM(cs.whatsap), 0) as whatsapp
-    FROM clint_sdr cs
+    FROM comercial_sdr cs
     WHERE TO_DATE(cs.dia_registro, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
     GROUP BY cs.sdr
   `, [dataInicio, dataFim]);
@@ -25,7 +25,7 @@ async function fetchSDRData(client: Client, dataInicio: string, dataFim: string)
       sdr,
       COUNT(*) as reunioes_marcadas,
       COUNT(CASE WHEN UPPER(situacao) = 'SHOW' THEN 1 END) as reunioes_realizadas
-    FROM reunioes_comercial
+    FROM comercial_reunioes
     WHERE TO_DATE(dia_registro, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
     GROUP BY sdr
   `, [dataInicio, dataFim]);
@@ -54,7 +54,7 @@ async function fetchSDRData(client: Client, dataInicio: string, dataFim: string)
     };
   });
 
-  // Adicionar SDRs que têm reuniões mas não têm dados no clint_sdr
+  // Adicionar SDRs que têm reuniões mas não têm dados no comercial_sdr
   reunioesData.forEach((r: any) => {
     if (!response.find((s: any) => s.sdr === r.sdr)) {
       response.push({

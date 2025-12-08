@@ -59,7 +59,7 @@ serve(async (req) => {
           COALESCE(SUM(${safeInt('ligacoes')}), 0)::integer as total_ligacoes,
           COALESCE(SUM(${safeInt('whatsap')}), 0)::integer as total_whatsapp,
           COUNT(*)::integer as dias_trabalhados
-        FROM clint_sdr
+        FROM comercial_sdr
         ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
         GROUP BY sdr
         ORDER BY total_ligacoes DESC NULLS LAST
@@ -72,7 +72,7 @@ serve(async (req) => {
           ${safeInt('leads_recebidos')} as leads_recebidos,
           ${safeInt('prospeccao')} as prospeccao,
           ${safeInt('conexao')} as conexao
-        FROM clint_basemae
+        FROM comercial_clint_basemae
         ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
         ORDER BY dia_registro DESC
         LIMIT 30
@@ -86,7 +86,7 @@ serve(async (req) => {
           ${safeInt('ligacoes')} as ligacoes,
           ${safeInt('whatsap')} as whatsap,
           tempo
-        FROM clint_sdr
+        FROM comercial_sdr
         ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
         ORDER BY dia_registro DESC, sdr
         LIMIT 100
@@ -97,7 +97,7 @@ serve(async (req) => {
         SELECT 
           COALESCE(SUM(${safeInt('ligacoes')}), 0)::integer as total_ligacoes,
           COALESCE(SUM(${safeInt('whatsap')}), 0)::integer as total_whatsapp
-        FROM clint_sdr
+        FROM comercial_sdr
         ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
       `;
       const basemaeQuery = `
@@ -105,7 +105,7 @@ serve(async (req) => {
           COALESCE(SUM(${safeInt('leads_recebidos')}), 0)::integer as total_leads,
           COALESCE(SUM(${safeInt('prospeccao')}), 0)::integer as total_prospeccao,
           COALESCE(SUM(${safeInt('conexao')}), 0)::integer as total_conexao
-        FROM clint_basemae
+        FROM comercial_clint_basemae
         ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
       `;
       

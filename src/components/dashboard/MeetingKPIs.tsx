@@ -42,7 +42,7 @@ export const MeetingKPIs = ({ filterDateFrom, filterDateTo, filterSdr, filterClo
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: 'SELECT sdr, closer, situacao, dia_reuniao FROM reunioes_comercial',
+          query: 'SELECT sdr, closer, situacao, dia_reuniao FROM comercial_reunioes',
         }),
       });
 

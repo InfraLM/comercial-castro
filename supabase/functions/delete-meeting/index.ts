@@ -62,7 +62,7 @@ serve(async (req) => {
     }
 
     const deleteQuery = `
-      DELETE FROM reunioes_comercial 
+      DELETE FROM comercial_reunioes 
       WHERE sdr = $1 
         AND nome = $2 
         AND dia_reuniao = $3

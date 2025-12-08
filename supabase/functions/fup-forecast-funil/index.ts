@@ -51,13 +51,13 @@ serve(async (req) => {
     const dataInicioAntConv = convertDate(data_inicio_anterior);
     const dataFimAntConv = convertDate(data_fim_anterior);
 
-    // Query para semana atual - clint_basemae
+    // Query para semana atual - comercial_clint_basemae
     const basemaeAtualResult = await client.queryObject(`
       SELECT 
         COALESCE(SUM(leads_recebidos), 0) as leads_recebidos,
         COALESCE(SUM(prospeccao), 0) as prospeccao,
         COALESCE(SUM(conexao), 0) as conexao
-      FROM clint_basemae
+      FROM comercial_clint_basemae
       WHERE TO_DATE(dia_registro, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
     `, [dataInicioConv, dataFimConv]);
 
@@ -66,7 +66,7 @@ serve(async (req) => {
       SELECT 
         COUNT(*) as total_reunioes,
         COUNT(CASE WHEN UPPER(situacao) = 'SHOW' THEN 1 END) as shows
-      FROM reunioes_comercial
+      FROM comercial_reunioes
       WHERE TO_DATE(dia_registro, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
     `, [dataInicioConv, dataFimConv]);
 
@@ -88,13 +88,13 @@ serve(async (req) => {
     `, [dataInicioConv, dataFimConv]);
     console.log("Vendas Pós Graduação atual:", vendasAtualResult.rows);
 
-    // Query para semana anterior - clint_basemae
+    // Query para semana anterior - comercial_clint_basemae
     const basemaeAnteriorResult = await client.queryObject(`
       SELECT 
         COALESCE(SUM(leads_recebidos), 0) as leads_recebidos,
         COALESCE(SUM(prospeccao), 0) as prospeccao,
         COALESCE(SUM(conexao), 0) as conexao
-      FROM clint_basemae
+      FROM comercial_clint_basemae
       WHERE TO_DATE(dia_registro, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
     `, [dataInicioAntConv, dataFimAntConv]);
 
@@ -103,7 +103,7 @@ serve(async (req) => {
       SELECT 
         COUNT(*) as total_reunioes,
         COUNT(CASE WHEN UPPER(situacao) = 'SHOW' THEN 1 END) as shows
-      FROM reunioes_comercial
+      FROM comercial_reunioes
       WHERE TO_DATE(dia_registro, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
     `, [dataInicioAntConv, dataFimAntConv]);
 

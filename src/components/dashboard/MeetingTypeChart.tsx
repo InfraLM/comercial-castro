@@ -44,7 +44,7 @@ export const MeetingTypeChart = ({ filterDateFrom, filterDateTo, filterSdr, filt
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: 'SELECT tipo_reuniao, sdr, closer, dia_reuniao FROM reunioes_comercial',
+          query: 'SELECT tipo_reuniao, sdr, closer, dia_reuniao FROM comercial_reunioes',
         }),
       });
 
