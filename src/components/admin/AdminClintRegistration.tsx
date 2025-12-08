@@ -34,7 +34,7 @@ export function AdminClintRegistration() {
     try {
       const { data } = await supabase.functions.invoke('external-db-query', {
         body: {
-          query: `SELECT COUNT(*) as count FROM clint_text WHERE dia_registro = $1`,
+          query: `SELECT COUNT(*) as count FROM comercial_text WHERE dia_registro = $1`,
           params: [diaRegistro],
         },
       });
@@ -78,7 +78,7 @@ export function AdminClintRegistration() {
 
       const { error } = await supabase.functions.invoke('insert-data', {
         body: {
-          tableName: 'clint_text',
+          tableName: 'comercial_text',
           data: textData,
         },
       });
@@ -178,7 +178,7 @@ export function AdminClintRegistration() {
             <FileText className="h-4 w-4 text-primary" />
             Registro de Texto
           </CardTitle>
-          <CardDescription>Adicione os textos para processamento na tabela clint_text</CardDescription>
+          <CardDescription>Adicione os textos para processamento na tabela comercial_text</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
