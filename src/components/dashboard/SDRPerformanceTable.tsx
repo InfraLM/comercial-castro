@@ -82,7 +82,7 @@ export const SDRPerformanceTable = ({ filterDateFrom, filterDateTo, filterSdr, f
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          query: 'SELECT sdr, closer, situacao, nome, dia_reuniao, tipo_reuniao FROM reunioes_comercial',
+          query: 'SELECT sdr, closer, situacao, nome, dia_reuniao, tipo_reuniao FROM comercial_reunioes',
         }),
       });
 

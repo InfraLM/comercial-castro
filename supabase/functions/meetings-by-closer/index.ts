@@ -77,7 +77,7 @@ serve(async (req) => {
     // Filter by closer email (case-insensitive, trimmed) directly in the DB
     const query = `
       SELECT sdr, closer, situacao, nome, dia_reuniao, tipo_reuniao
-      FROM reunioes_comercial
+      FROM comercial_reunioes
       WHERE lower(trim(closer)) = lower(trim($1))
     `;
 

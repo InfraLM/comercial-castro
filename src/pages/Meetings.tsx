@@ -49,7 +49,7 @@ const Meetings = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          tableName: 'reunioes_comercial',
+          tableName: 'comercial_reunioes',
           data,
         }),
       });

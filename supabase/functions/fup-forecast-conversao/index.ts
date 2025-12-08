@@ -54,7 +54,7 @@ serve(async (req) => {
         SELECT 
           sdr,
           COUNT(CASE WHEN UPPER(situacao) = 'SHOW' THEN 1 END) as reunioes_realizadas
-        FROM reunioes_comercial
+        FROM comercial_reunioes
         WHERE TO_DATE(dia_registro, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
         GROUP BY sdr
       `, [dataInicioConv, dataFimConv]);
@@ -95,7 +95,7 @@ serve(async (req) => {
         SELECT 
           closer,
           COUNT(CASE WHEN UPPER(situacao) = 'SHOW' THEN 1 END) as reunioes_realizadas
-        FROM reunioes_comercial
+        FROM comercial_reunioes
         WHERE TO_DATE(dia_registro, 'DD/MM/YYYY') BETWEEN $1::date AND $2::date
         GROUP BY closer
       `, [dataInicioConv, dataFimConv]);
