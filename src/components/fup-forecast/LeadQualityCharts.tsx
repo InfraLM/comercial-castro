@@ -17,14 +17,38 @@ interface LeadQualityChartsProps {
   data_fim: string;
 }
 
+// Cores pasteis inspiradas em #ff3131
 const COLORS = [
-  "hsl(var(--primary))",
-  "hsl(142, 76%, 36%)",
-  "hsl(48, 96%, 53%)",
-  "hsl(262, 83%, 58%)",
-  "hsl(199, 89%, 48%)",
-  "hsl(24, 94%, 50%)",
+  "hsl(0, 70%, 65%)",      // Vermelho pastel (baseado no #ff3131)
+  "hsl(0, 45%, 75%)",      // Rosa claro
+  "hsl(15, 60%, 70%)",     // Pêssego
+  "hsl(30, 55%, 70%)",     // Laranja pastel
+  "hsl(350, 50%, 70%)",    // Rosa avermelhado
+  "hsl(10, 50%, 80%)",     // Coral claro
 ];
+
+const renderCustomLabel = ({ name, percent, cx, cy, midAngle, innerRadius, outerRadius }: any) => {
+  const RADIAN = Math.PI / 180;
+  const radius = outerRadius * 1.3;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  
+  if (percent < 0.03) return null; // Não mostrar labels muito pequenos
+  
+  return (
+    <text 
+      x={x} 
+      y={y} 
+      fill="hsl(var(--foreground))"
+      textAnchor={x > cx ? 'start' : 'end'} 
+      dominantBaseline="central"
+      fontSize={12}
+      fontWeight={500}
+    >
+      {`${name}: ${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+};
 
 export function LeadQualityCharts({ data_inicio, data_fim }: LeadQualityChartsProps) {
   const { getSdrName } = useUserMapping();
@@ -106,17 +130,18 @@ export function LeadQualityCharts({ data_inicio, data_fim }: LeadQualityChartsPr
         </CardHeader>
         <CardContent>
           {pieData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={320}>
               <PieChart>
                 <Pie
                   data={pieData}
                   cx="50%"
                   cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={100}
+                  labelLine={true}
+                  label={renderCustomLabel}
+                  outerRadius={85}
                   fill="#8884d8"
                   dataKey="value"
+                  paddingAngle={2}
                 >
                   {pieData.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -130,7 +155,6 @@ export function LeadQualityCharts({ data_inicio, data_fim }: LeadQualityChartsPr
                     borderRadius: "8px"
                   }}
                 />
-                <Legend />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -154,16 +178,20 @@ export function LeadQualityCharts({ data_inicio, data_fim }: LeadQualityChartsPr
         </CardHeader>
         <CardContent>
           {barData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={320}>
               <BarChart data={barData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                <XAxis 
+                  type="number" 
+                  stroke="hsl(var(--muted-foreground))"
+                  tick={{ fontSize: 11 }}
+                />
                 <YAxis 
                   type="category" 
                   dataKey="sdr" 
-                  width={80} 
+                  width={90} 
                   stroke="hsl(var(--muted-foreground))"
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: 11 }}
                 />
                 <Tooltip 
                   contentStyle={{ 
@@ -172,7 +200,7 @@ export function LeadQualityCharts({ data_inicio, data_fim }: LeadQualityChartsPr
                     borderRadius: "8px"
                   }}
                 />
-                <Legend />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
                 {allQualities.map((quality, index) => (
                   <Bar 
                     key={quality} 
@@ -180,6 +208,7 @@ export function LeadQualityCharts({ data_inicio, data_fim }: LeadQualityChartsPr
                     stackId="a" 
                     fill={COLORS[index % COLORS.length]}
                     name={quality}
+                    radius={index === allQualities.length - 1 ? [0, 4, 4, 0] : [0, 0, 0, 0]}
                   />
                 ))}
               </BarChart>
