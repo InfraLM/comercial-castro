@@ -4,34 +4,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useProdutividadeSDR } from "@/hooks/useFupForecast";
 import { getIndicatorColor } from "@/lib/dateUtils";
 import { useUserMapping } from "@/contexts/UserMappingContext";
-import { ArrowUp, ArrowDown, Minus } from "lucide-react";
 
 interface LigacoesReunioesTableProps {
   weekRange: { inicio: string; fim: string };
   previousWeekRange: { inicio: string; fim: string };
   currentWeek: number;
 }
-
-// Para ligações: MAIOR é MELHOR (mais ligações = bom)
-const TrendIndicator = ({ current, previous }: { current: number; previous: number }) => {
-  if (previous === 0 || current === previous) {
-    return <Minus className="h-3 w-3 text-muted-foreground inline ml-1" />;
-  }
-  
-  const percentChange = ((current - previous) / previous) * 100;
-  const isImprovement = current > previous; // Maior é melhor para ligações
-  
-  return (
-    <span className={`inline-flex items-center ml-1 text-xs ${isImprovement ? 'text-emerald-600' : 'text-red-600'}`}>
-      {current > previous ? (
-        <ArrowUp className="h-3 w-3" />
-      ) : (
-        <ArrowDown className="h-3 w-3" />
-      )}
-      <span className="ml-0.5">{Math.abs(percentChange).toFixed(1)}%</span>
-    </span>
-  );
-};
 
 export function LigacoesReunioesTable({ weekRange, previousWeekRange, currentWeek }: LigacoesReunioesTableProps) {
   const { data, isLoading } = useProdutividadeSDR({
@@ -60,32 +38,9 @@ export function LigacoesReunioesTable({ weekRange, previousWeekRange, currentWee
   const sdrData = (data?.semana_atual || []).filter(sdr => 
     !sdr.sdr.toLowerCase().includes('murilo')
   );
-  const sdrDataAnterior = (data?.semana_anterior || []).filter(sdr => 
-    !sdr.sdr.toLowerCase().includes('murilo')
-  );
   
-  // Criar mapa da semana anterior para comparação
-  const anteriorMap = new Map<string, { ligacoes: number; reunioes_marcadas: number; reunioes_realizadas: number }>();
-  sdrDataAnterior.forEach(sdr => {
-    anteriorMap.set(sdr.sdr, {
-      ligacoes: sdr.ligacoes,
-      reunioes_marcadas: sdr.reunioes_marcadas,
-      reunioes_realizadas: sdr.reunioes_realizadas
-    });
-  });
-  
-  // Calcular totais atual
+  // Calcular totais
   const totais = sdrData.reduce(
-    (acc, sdr) => ({
-      ligacoes: acc.ligacoes + sdr.ligacoes,
-      reunioes_marcadas: acc.reunioes_marcadas + sdr.reunioes_marcadas,
-      reunioes_realizadas: acc.reunioes_realizadas + sdr.reunioes_realizadas
-    }),
-    { ligacoes: 0, reunioes_marcadas: 0, reunioes_realizadas: 0 }
-  );
-  
-  // Calcular totais anterior
-  const totaisAnterior = sdrDataAnterior.reduce(
     (acc, sdr) => ({
       ligacoes: acc.ligacoes + sdr.ligacoes,
       reunioes_marcadas: acc.reunioes_marcadas + sdr.reunioes_marcadas,
@@ -106,8 +61,6 @@ export function LigacoesReunioesTable({ weekRange, previousWeekRange, currentWee
 
   const totalLigReuniaoM = calcLigReuniaoM(totais.ligacoes, totais.reunioes_marcadas);
   const totalLigReuniaoR = calcLigReuniaoR(totais.ligacoes, totais.reunioes_realizadas);
-  const totalLigReuniaoMAnterior = calcLigReuniaoM(totaisAnterior.ligacoes, totaisAnterior.reunioes_marcadas);
-  const totalLigReuniaoRAnterior = calcLigReuniaoR(totaisAnterior.ligacoes, totaisAnterior.reunioes_realizadas);
 
   return (
     <Card>
@@ -137,16 +90,10 @@ export function LigacoesReunioesTable({ weekRange, previousWeekRange, currentWee
                 const colorM = getIndicatorColor('ligacoes_reuniao_m', ligReuniaoM);
                 const colorR = getIndicatorColor('ligacoes_reuniao_r', ligReuniaoR);
                 
-                // Dados anteriores para comparação
-                const anterior = anteriorMap.get(sdr.sdr);
-                
                 return (
                   <TableRow key={sdr.sdr}>
                     <TableCell className="font-medium">{getSdrName(sdr.sdr)}</TableCell>
-                    <TableCell className="text-center">
-                      {sdr.ligacoes.toLocaleString('pt-BR')}
-                      {anterior && <TrendIndicator current={sdr.ligacoes} previous={anterior.ligacoes} />}
-                    </TableCell>
+                    <TableCell className="text-center">{sdr.ligacoes.toLocaleString('pt-BR')}</TableCell>
                     <TableCell className="text-center">{sdr.reunioes_marcadas}</TableCell>
                     <TableCell className="text-center">{sdr.reunioes_realizadas}</TableCell>
                     <TableCell className="text-center">
@@ -168,10 +115,7 @@ export function LigacoesReunioesTable({ weekRange, previousWeekRange, currentWee
               {/* Linha de totais */}
               <TableRow className="bg-muted/50 font-bold">
                 <TableCell>TOTAL</TableCell>
-                <TableCell className="text-center">
-                  {totais.ligacoes.toLocaleString('pt-BR')}
-                  <TrendIndicator current={totais.ligacoes} previous={totaisAnterior.ligacoes} />
-                </TableCell>
+                <TableCell className="text-center">{totais.ligacoes.toLocaleString('pt-BR')}</TableCell>
                 <TableCell className="text-center">{totais.reunioes_marcadas}</TableCell>
                 <TableCell className="text-center">{totais.reunioes_realizadas}</TableCell>
                 <TableCell className="text-center">
