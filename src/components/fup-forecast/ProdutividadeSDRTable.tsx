@@ -51,8 +51,13 @@ export function ProdutividadeSDRTable({ weekRange, previousWeekRange, currentWee
     );
   }
 
-  const sdrDataAtual = data?.semana_atual || [];
-  const sdrDataAnterior = data?.semana_anterior || [];
+  // Filtrar Murilo dos dados
+  const sdrDataAtual = (data?.semana_atual || []).filter(sdr => 
+    !sdr.sdr.toLowerCase().includes('murilo')
+  );
+  const sdrDataAnterior = (data?.semana_anterior || []).filter(sdr => 
+    !sdr.sdr.toLowerCase().includes('murilo')
+  );
 
   // Criar mapa da semana anterior para comparação
   const anteriorMap = new Map<string, SDRProdutividadeData>();
