@@ -29,10 +29,9 @@ export function TaxaConversaoCloserTable({ data_inicio, data_fim, currentWeek }:
     );
   }
 
-  // Filtrar Murilo e Weber, ordenar por taxa de conversão
+  // Filtrar Weber, ordenar por taxa de conversão
   const closerData = (data || [])
     .filter((closer) => 
-      !closer.closer?.toLowerCase().includes('murilo') && 
       !closer.closer?.toLowerCase().includes('weber')
     )
     .sort((a, b) => {
