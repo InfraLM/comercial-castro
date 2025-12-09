@@ -17,15 +17,22 @@ interface LeadQualityChartsProps {
   data_fim: string;
 }
 
-// Cores padrão para gráficos
-const COLORS = [
-  "#8884d8",  // Roxo
-  "#82ca9d",  // Verde
-  "#ffc658",  // Amarelo
-  "#ff7300",  // Laranja
-  "#0088fe",  // Azul
-  "#00C49F",  // Turquesa
-];
+// Ordem definida das qualidades
+const QUALITY_ORDER = ["A", "B", "C", "R", "Outros produtos", "Abandono de formulario"];
+
+// Cores padrão para gráficos (mapeadas por ordem)
+const COLORS: Record<string, string> = {
+  "A": "#82ca9d",           // Verde
+  "B": "#8884d8",           // Roxo
+  "C": "#ffc658",           // Amarelo
+  "R": "#ff7300",           // Laranja
+  "Outros produtos": "#0088fe",  // Azul
+  "Abandono de formulario": "#00C49F",  // Turquesa
+};
+
+const getColor = (quality: string, index: number) => {
+  return COLORS[quality] || ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#0088fe", "#00C49F"][index % 6];
+};
 
 export function LeadQualityCharts({ data_inicio, data_fim }: LeadQualityChartsProps) {
   const { getSdrName } = useUserMapping();
@@ -71,10 +78,17 @@ export function LeadQualityCharts({ data_inicio, data_fim }: LeadQualityChartsPr
     return acc;
   }, {} as Record<string, number>);
 
-  const pieData = Object.entries(qualityTotals).map(([name, value]) => ({
-    name,
-    value,
-  }));
+  // Ordenar pieData conforme a ordem definida
+  const pieData = Object.entries(qualityTotals)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => {
+      const indexA = QUALITY_ORDER.indexOf(a.name);
+      const indexB = QUALITY_ORDER.indexOf(b.name);
+      // Itens não encontrados na ordem vão para o final
+      const orderA = indexA === -1 ? 999 : indexA;
+      const orderB = indexB === -1 ? 999 : indexB;
+      return orderA - orderB;
+    });
 
   // Agregar dados por SDR para o gráfico de barras
   const sdrData = (data || []).reduce((acc, item) => {
@@ -88,7 +102,15 @@ export function LeadQualityCharts({ data_inicio, data_fim }: LeadQualityChartsPr
   }, {} as Record<string, any>);
 
   const barData = Object.values(sdrData);
-  const allQualities = [...new Set((data || []).map(d => d.qualidade_lead || "Não informado"))];
+  // Ordenar qualidades conforme a ordem definida
+  const allQualities = [...new Set((data || []).map(d => d.qualidade_lead || "Não informado"))]
+    .sort((a, b) => {
+      const indexA = QUALITY_ORDER.indexOf(a);
+      const indexB = QUALITY_ORDER.indexOf(b);
+      const orderA = indexA === -1 ? 999 : indexA;
+      const orderB = indexB === -1 ? 999 : indexB;
+      return orderA - orderB;
+    });
 
   const totalLeads = pieData.reduce((sum, item) => sum + item.value, 0);
 
@@ -119,8 +141,8 @@ export function LeadQualityCharts({ data_inicio, data_fim }: LeadQualityChartsPr
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {pieData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={getColor(entry.name, index)} />
                   ))}
                 </Pie>
                 <Tooltip 
@@ -183,7 +205,7 @@ export function LeadQualityCharts({ data_inicio, data_fim }: LeadQualityChartsPr
                     key={quality} 
                     dataKey={quality} 
                     stackId="a" 
-                    fill={COLORS[index % COLORS.length]}
+                    fill={getColor(quality, index)}
                     name={quality}
                     radius={index === allQualities.length - 1 ? [0, 4, 4, 0] : [0, 0, 0, 0]}
                   />
