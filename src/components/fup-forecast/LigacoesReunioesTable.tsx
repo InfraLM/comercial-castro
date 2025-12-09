@@ -134,8 +134,6 @@ export function LigacoesReunioesTable({ weekRange, previousWeekRange, currentWee
                 
                 // Dados anteriores para comparação
                 const anterior = anteriorMap.get(sdr.sdr);
-                const ligReuniaoMAnterior = anterior ? calcLigReuniaoM(anterior.ligacoes, anterior.reunioes_marcadas) : 0;
-                const ligReuniaoRAnterior = anterior ? calcLigReuniaoR(anterior.ligacoes, anterior.reunioes_realizadas) : 0;
                 
                 return (
                   <TableRow key={sdr.sdr}>
@@ -144,27 +142,19 @@ export function LigacoesReunioesTable({ weekRange, previousWeekRange, currentWee
                       {sdr.ligacoes.toLocaleString('pt-BR')}
                       {anterior && <TrendIndicator current={sdr.ligacoes} previous={anterior.ligacoes} />}
                     </TableCell>
-                    <TableCell className="text-center">
-                      {sdr.reunioes_marcadas}
-                      {anterior && <TrendIndicator current={sdr.reunioes_marcadas} previous={anterior.reunioes_marcadas} />}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {sdr.reunioes_realizadas}
-                      {anterior && <TrendIndicator current={sdr.reunioes_realizadas} previous={anterior.reunioes_realizadas} />}
-                    </TableCell>
+                    <TableCell className="text-center">{sdr.reunioes_marcadas}</TableCell>
+                    <TableCell className="text-center">{sdr.reunioes_realizadas}</TableCell>
                     <TableCell className="text-center">
                       <span className={colorM === 'green' ? "text-emerald-600 font-semibold" : "text-red-600 font-semibold"}>
                         {ligReuniaoM.toFixed(2)}
                       </span>
                       <span className="ml-1">{colorM === 'green' ? '✅' : '❌'}</span>
-                      <TrendIndicator current={ligReuniaoM} previous={ligReuniaoMAnterior} />
                     </TableCell>
                     <TableCell className="text-center">
                       <span className={colorR === 'green' ? "text-emerald-600 font-semibold" : "text-red-600 font-semibold"}>
                         {ligReuniaoR.toFixed(2)}
                       </span>
                       <span className="ml-1">{colorR === 'green' ? '✅' : '❌'}</span>
-                      <TrendIndicator current={ligReuniaoR} previous={ligReuniaoRAnterior} />
                     </TableCell>
                   </TableRow>
                 );
@@ -177,27 +167,19 @@ export function LigacoesReunioesTable({ weekRange, previousWeekRange, currentWee
                   {totais.ligacoes.toLocaleString('pt-BR')}
                   <TrendIndicator current={totais.ligacoes} previous={totaisAnterior.ligacoes} />
                 </TableCell>
-                <TableCell className="text-center">
-                  {totais.reunioes_marcadas}
-                  <TrendIndicator current={totais.reunioes_marcadas} previous={totaisAnterior.reunioes_marcadas} />
-                </TableCell>
-                <TableCell className="text-center">
-                  {totais.reunioes_realizadas}
-                  <TrendIndicator current={totais.reunioes_realizadas} previous={totaisAnterior.reunioes_realizadas} />
-                </TableCell>
+                <TableCell className="text-center">{totais.reunioes_marcadas}</TableCell>
+                <TableCell className="text-center">{totais.reunioes_realizadas}</TableCell>
                 <TableCell className="text-center">
                   <span className={getIndicatorColor('ligacoes_reuniao_m', totalLigReuniaoM) === 'green' ? "text-emerald-600 font-semibold" : "text-red-600 font-semibold"}>
                     {totalLigReuniaoM.toFixed(2)}
                   </span>
                   <span className="ml-1">{getIndicatorColor('ligacoes_reuniao_m', totalLigReuniaoM) === 'green' ? '✅' : '❌'}</span>
-                  <TrendIndicator current={totalLigReuniaoM} previous={totalLigReuniaoMAnterior} />
                 </TableCell>
                 <TableCell className="text-center">
                   <span className={getIndicatorColor('ligacoes_reuniao_r', totalLigReuniaoR) === 'green' ? "text-emerald-600 font-semibold" : "text-red-600 font-semibold"}>
                     {totalLigReuniaoR.toFixed(2)}
                   </span>
                   <span className="ml-1">{getIndicatorColor('ligacoes_reuniao_r', totalLigReuniaoR) === 'green' ? '✅' : '❌'}</span>
-                  <TrendIndicator current={totalLigReuniaoR} previous={totalLigReuniaoRAnterior} />
                 </TableCell>
               </TableRow>
             </TableBody>
