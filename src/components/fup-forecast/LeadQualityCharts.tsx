@@ -17,38 +17,15 @@ interface LeadQualityChartsProps {
   data_fim: string;
 }
 
-// Cores pasteis inspiradas em #ff3131
+// Cores padrão para gráficos
 const COLORS = [
-  "hsl(0, 70%, 65%)",      // Vermelho pastel (baseado no #ff3131)
-  "hsl(0, 45%, 75%)",      // Rosa claro
-  "hsl(15, 60%, 70%)",     // Pêssego
-  "hsl(30, 55%, 70%)",     // Laranja pastel
-  "hsl(350, 50%, 70%)",    // Rosa avermelhado
-  "hsl(10, 50%, 80%)",     // Coral claro
+  "#8884d8",  // Roxo
+  "#82ca9d",  // Verde
+  "#ffc658",  // Amarelo
+  "#ff7300",  // Laranja
+  "#0088fe",  // Azul
+  "#00C49F",  // Turquesa
 ];
-
-const renderCustomLabel = ({ name, percent, cx, cy, midAngle, innerRadius, outerRadius }: any) => {
-  const RADIAN = Math.PI / 180;
-  const radius = outerRadius * 1.3;
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
-  
-  if (percent < 0.03) return null; // Não mostrar labels muito pequenos
-  
-  return (
-    <text 
-      x={x} 
-      y={y} 
-      fill="hsl(var(--foreground))"
-      textAnchor={x > cx ? 'start' : 'end'} 
-      dominantBaseline="central"
-      fontSize={12}
-      fontWeight={500}
-    >
-      {`${name}: ${(percent * 100).toFixed(0)}%`}
-    </text>
-  );
-};
 
 export function LeadQualityCharts({ data_inicio, data_fim }: LeadQualityChartsProps) {
   const { getSdrName } = useUserMapping();
@@ -137,24 +114,24 @@ export function LeadQualityCharts({ data_inicio, data_fim }: LeadQualityChartsPr
                   cx="50%"
                   cy="50%"
                   labelLine={true}
-                  label={renderCustomLabel}
-                  outerRadius={85}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
-                  paddingAngle={2}
                 >
                   {pieData.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip 
-                  formatter={(value: number) => [value, "Quantidade"]}
+                  formatter={(value: number, name: string) => [value, name]}
                   contentStyle={{ 
                     backgroundColor: "hsl(var(--card))", 
                     border: "1px solid hsl(var(--border))",
                     borderRadius: "8px"
                   }}
                 />
+                <Legend />
               </PieChart>
             </ResponsiveContainer>
           ) : (
