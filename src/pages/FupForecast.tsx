@@ -9,6 +9,7 @@ import { TaxaConversaoSDRTable } from "@/components/fup-forecast/TaxaConversaoSD
 import { TaxaConversaoCloserTable } from "@/components/fup-forecast/TaxaConversaoCloserTable";
 import { VendasProdutoCard } from "@/components/fup-forecast/VendasProdutoCard";
 import { HighsLowsCard } from "@/components/fup-forecast/HighsLowsCard";
+import { LeadQualityCharts } from "@/components/fup-forecast/LeadQualityCharts";
 import { getWeekNumber, getWeekDateRange } from "@/lib/dateUtils";
 
 export default function FupForecast() {
@@ -87,6 +88,12 @@ export default function FupForecast() {
         weekRange={weekRange}
         previousWeekRange={previousWeekRange}
         currentWeek={currentWeek}
+      />
+
+      {/* Qualidade de Leads */}
+      <LeadQualityCharts 
+        data_inicio={weekRange.inicio}
+        data_fim={weekRange.fim}
       />
 
       {/* Grid de Conversão */}
