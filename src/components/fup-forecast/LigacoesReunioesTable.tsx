@@ -12,21 +12,21 @@ interface LigacoesReunioesTableProps {
   currentWeek: number;
 }
 
-// Para métricas de ligações/reunião, MENOR é MELHOR
+// Para ligações: MAIOR é MELHOR (mais ligações = bom)
 const TrendIndicator = ({ current, previous }: { current: number; previous: number }) => {
   if (previous === 0 || current === previous) {
     return <Minus className="h-3 w-3 text-muted-foreground inline ml-1" />;
   }
   
   const percentChange = ((current - previous) / previous) * 100;
-  const isImprovement = current < previous; // Menor é melhor para ligações/reunião
+  const isImprovement = current > previous; // Maior é melhor para ligações
   
   return (
     <span className={`inline-flex items-center ml-1 text-xs ${isImprovement ? 'text-emerald-600' : 'text-red-600'}`}>
-      {isImprovement ? (
-        <ArrowDown className="h-3 w-3" />
-      ) : (
+      {current > previous ? (
         <ArrowUp className="h-3 w-3" />
+      ) : (
+        <ArrowDown className="h-3 w-3" />
       )}
       <span className="ml-0.5">{Math.abs(percentChange).toFixed(1)}%</span>
     </span>
