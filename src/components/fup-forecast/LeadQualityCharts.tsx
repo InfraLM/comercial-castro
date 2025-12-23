@@ -18,20 +18,27 @@ interface LeadQualityChartsProps {
 }
 
 // Ordem definida das qualidades
-const QUALITY_ORDER = ["A", "B", "C", "R", "Outros produtos", "Abandono de formulario"];
+const QUALITY_ORDER = ["A", "B", "C", "R", "Outros produtos", "Abandono de formulario", "Red November", "Indicacao"];
 
-// Cores padrão para gráficos (mapeadas por ordem)
-const COLORS: Record<string, string> = {
-  "A": "#82ca9d",           // Verde
-  "B": "#8884d8",           // Roxo
-  "C": "#ffc658",           // Amarelo
-  "R": "#ff7300",           // Laranja
-  "Outros produtos": "#0088fe",  // Azul
-  "Abandono de formulario": "#00C49F",  // Turquesa
+// Cores consistentes para cada qualidade (usadas em ambos os gráficos)
+const QUALITY_COLORS: Record<string, string> = {
+  "A": "#22c55e",           // Verde
+  "B": "#3b82f6",           // Azul
+  "C": "#f59e0b",           // Amarelo/Laranja
+  "R": "#ef4444",           // Vermelho
+  "Outros produtos": "#8b5cf6",  // Roxo
+  "Abandono de formulario": "#06b6d4",  // Ciano
+  "Abandono de formulário": "#06b6d4",  // Ciano (variação)
+  "Red November": "#ec4899",     // Rosa
+  "Indicacao": "#14b8a6",        // Teal
+  "Não informado": "#6b7280",    // Cinza
 };
 
-const getColor = (quality: string, index: number) => {
-  return COLORS[quality] || ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#0088fe", "#00C49F"][index % 6];
+// Função para obter cor consistente
+const getQualityColor = (quality: string): string => {
+  // Normalizar o nome da qualidade para buscar a cor
+  const normalizedQuality = quality.trim();
+  return QUALITY_COLORS[normalizedQuality] || "#6b7280";
 };
 
 export function LeadQualityCharts({ data_inicio, data_fim }: LeadQualityChartsProps) {
@@ -80,7 +87,7 @@ export function LeadQualityCharts({ data_inicio, data_fim }: LeadQualityChartsPr
 
   // Ordenar dados conforme a ordem definida
   const qualityData = Object.entries(qualityTotals)
-    .map(([name, value]) => ({ name, value, fill: getColor(name, 0) }))
+    .map(([name, value]) => ({ name, value, fill: getQualityColor(name) }))
     .sort((a, b) => {
       const indexA = QUALITY_ORDER.indexOf(a.name);
       const indexB = QUALITY_ORDER.indexOf(b.name);
@@ -211,7 +218,7 @@ export function LeadQualityCharts({ data_inicio, data_fim }: LeadQualityChartsPr
                     key={quality} 
                     dataKey={quality} 
                     stackId="a" 
-                    fill={getColor(quality, index)}
+                    fill={getQualityColor(quality)}
                     name={quality}
                     radius={index === allQualities.length - 1 ? [0, 4, 4, 0] : [0, 0, 0, 0]}
                   />
