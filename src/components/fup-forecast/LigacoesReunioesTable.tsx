@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useProdutividadeSDR } from "@/hooks/useFupForecast";
+import { useProdutividadeSDR, SDRProdutividadeData } from "@/hooks/useFupForecast";
 import { getIndicatorColor } from "@/lib/dateUtils";
 import { useUserMapping } from "@/contexts/UserMappingContext";
 
@@ -34,9 +34,36 @@ export function LigacoesReunioesTable({ weekRange, previousWeekRange, currentWee
     );
   }
 
-  // Filtrar Murilo dos dados
-  const sdrData = (data?.semana_atual || []).filter(sdr => 
-    !sdr.sdr.toLowerCase().includes('murilo')
+  // Função para mesclar dados duplicados (ex: Hyago aparece como email e como nome)
+  const mergeSDRData = (dataArray: SDRProdutividadeData[]): SDRProdutividadeData[] => {
+    const merged = new Map<string, SDRProdutividadeData>();
+    
+    dataArray.forEach(sdr => {
+      const isHyagoEmail = sdr.sdr.toLowerCase().includes('hyago.alves');
+      const isHyagoName = sdr.sdr.toLowerCase() === 'hyago';
+      const key = isHyagoEmail || isHyagoName ? 'hyago.alves@liberdademedicaedu.com.br' : sdr.sdr;
+      
+      if (merged.has(key)) {
+        const existing = merged.get(key)!;
+        merged.set(key, {
+          sdr: key,
+          ligacoes: existing.ligacoes + sdr.ligacoes,
+          tempo_segundos: existing.tempo_segundos + sdr.tempo_segundos,
+          whatsapp: existing.whatsapp + sdr.whatsapp,
+          reunioes_marcadas: existing.reunioes_marcadas + sdr.reunioes_marcadas,
+          reunioes_realizadas: existing.reunioes_realizadas + sdr.reunioes_realizadas
+        });
+      } else {
+        merged.set(key, { ...sdr, sdr: key });
+      }
+    });
+    
+    return Array.from(merged.values());
+  };
+
+  // Filtrar Murilo e mesclar dados duplicados
+  const sdrData = mergeSDRData(
+    (data?.semana_atual || []).filter(sdr => !sdr.sdr.toLowerCase().includes('murilo'))
   );
   
   // Calcular totais
