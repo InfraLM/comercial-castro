@@ -1,4 +1,4 @@
-import { Database, Users, Settings, ClipboardList, ChevronLeft } from "lucide-react";
+import { Database, Users, Settings, ClipboardList, ChevronLeft, Home, Calendar, BarChart3 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -7,6 +7,12 @@ interface AdminSidebarProps {
   activeSection: string;
   onSectionChange: (section: string) => void;
 }
+
+const mainSections = [
+  { id: "home", title: "Home", icon: Home },
+  { id: "reunioes", title: "Reuniões", icon: Calendar },
+  { id: "clint-dashboard", title: "Dashboard Clint", icon: BarChart3 },
+];
 
 const adminSections = [
   { id: "database", title: "Banco de Dados", icon: Database },
@@ -22,7 +28,7 @@ export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarPro
         <NavLink to="/">
           <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground">
             <ChevronLeft className="h-4 w-4" />
-            Voltar ao Dashboard
+            Voltar ao FUP/Forecast
           </Button>
         </NavLink>
       </div>
@@ -33,21 +39,43 @@ export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarPro
       </div>
 
       <nav className="flex-1 p-2 space-y-1">
-        {adminSections.map((section) => (
-          <button
-            key={section.id}
-            onClick={() => onSectionChange(section.id)}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-              activeSection === section.id
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            )}
-          >
-            <section.icon className="h-5 w-5" />
-            <span>{section.title}</span>
-          </button>
-        ))}
+        <div className="mb-4">
+          <p className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Páginas</p>
+          {mainSections.map((section) => (
+            <button
+              key={section.id}
+              onClick={() => onSectionChange(section.id)}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                activeSection === section.id
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+            >
+              <section.icon className="h-5 w-5" />
+              <span>{section.title}</span>
+            </button>
+          ))}
+        </div>
+
+        <div>
+          <p className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Configurações</p>
+          {adminSections.map((section) => (
+            <button
+              key={section.id}
+              onClick={() => onSectionChange(section.id)}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                activeSection === section.id
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+            >
+              <section.icon className="h-5 w-5" />
+              <span>{section.title}</span>
+            </button>
+          ))}
+        </div>
       </nav>
     </div>
   );
