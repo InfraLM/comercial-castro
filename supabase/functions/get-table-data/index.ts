@@ -1,10 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Client } from "https://deno.land/x/postgres@v0.17.0/mod.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Whitelist of allowed tables for reading
+const ALLOWED_TABLES = [
+  'comercial_reunioes',
+  'comercial_sdr',
+  'comercial_clint_basemae',
+  'comercial_basemae',
+  'comercial_clint_text'
+];
 
 // Helper function to convert BigInt to Number in nested objects
 function convertBigInt(obj: any): any {
@@ -34,16 +44,52 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Verify authentication
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return new Response(
+      JSON.stringify({ success: false, error: 'Missing authorization header' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+  );
+
+  const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
+    authHeader.replace('Bearer ', '')
+  );
+
+  if (authError || !user) {
+    return new Response(
+      JSON.stringify({ success: false, error: 'Unauthorized' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   let client: Client | null = null;
 
   try {
-    const { tableName, limit = 999999 } = await req.json();
+    const { tableName, limit = 1000 } = await req.json();
     
-    console.log('Getting table data:', { tableName, limit });
+    console.log('Getting table data:', { tableName, limit, user_id: user.id });
 
     if (!tableName) {
       throw new Error('tableName is required');
     }
+
+    // Validate table name against whitelist
+    if (!ALLOWED_TABLES.includes(tableName)) {
+      return new Response(
+        JSON.stringify({ success: false, error: `Table "${tableName}" is not allowed` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate limit
+    const safeLimit = Math.min(Math.max(1, parseInt(String(limit)) || 1000), 10000);
 
     const dbHost = Deno.env.get('EXTERNAL_DB_HOST');
     const dbPort = Deno.env.get('EXTERNAL_DB_PORT');
@@ -122,13 +168,13 @@ serve(async (req) => {
       default: row.column_default,
     }));
 
-    // Get table data with limit
+    // Get table data with validated limit
     const dataQuery = `SELECT * FROM "${dbSchema}"."${tableName}" LIMIT $1;`;
     
-    console.log(`Fetching data from table (limit: ${limit})`);
+    console.log(`Fetching data from table (limit: ${safeLimit})`);
     
     try {
-      const dataResult = await client.queryObject(dataQuery, [limit]);
+      const dataResult = await client.queryObject(dataQuery, [safeLimit]);
       const data = convertBigInt(dataResult.rows);
       
       await client.end();
@@ -155,7 +201,6 @@ serve(async (req) => {
           JSON.stringify({
             success: false,
             error: `Permission denied to access table "${tableName}"`,
-            suggestion: `Run this SQL as superuser to grant access:\nGRANT SELECT ON "${dbSchema}"."${tableName}" TO ${dbUser};`,
             columns,
           }),
           {
@@ -178,13 +223,11 @@ serve(async (req) => {
     }
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    const errorDetails = error instanceof Error ? error.toString() : String(error);
 
     return new Response(
       JSON.stringify({
         success: false,
         error: errorMessage,
-        details: errorDetails,
       }),
       {
         status: 500,

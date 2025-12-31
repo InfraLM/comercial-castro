@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Client } from "https://deno.land/x/postgres@v0.17.0/mod.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,9 +33,46 @@ const safeInt = (col: string) => `
   END
 `;
 
+// Validate date format (YYYY-MM-DD)
+function isValidDateFormat(dateStr: string): boolean {
+  if (!dateStr || typeof dateStr !== 'string') return false;
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(dateStr)) return false;
+  const date = new Date(dateStr);
+  return !isNaN(date.getTime());
+}
+
+// Validate request type
+const VALID_TYPES = ['sdr_performance', 'daily_metrics', 'sdr_daily', 'totals'];
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Verify authentication
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return new Response(
+      JSON.stringify({ error: 'Missing authorization header' }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+  );
+
+  const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
+    authHeader.replace('Bearer ', '')
+  );
+
+  if (authError || !user) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 
   const client = new Client({
@@ -50,36 +88,68 @@ serve(async (req) => {
 
     const { type, dateFrom, dateTo } = await req.json();
 
+    // Validate type
+    if (!type || !VALID_TYPES.includes(type)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid type parameter' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate dates if provided
+    if (dateFrom && !isValidDateFormat(dateFrom)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid dateFrom format. Use YYYY-MM-DD' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (dateTo && !isValidDateFormat(dateTo)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid dateTo format. Use YYYY-MM-DD' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     let result: { rows: unknown[] } = { rows: [] };
 
     if (type === "sdr_performance") {
-      const query = `
+      let query = `
         SELECT 
           sdr,
           COALESCE(SUM(${safeInt('ligacoes')}), 0)::integer as total_ligacoes,
           COALESCE(SUM(${safeInt('whatsap')}), 0)::integer as total_whatsapp,
           COUNT(*)::integer as dias_trabalhados
         FROM comercial_sdr
-        ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
-        GROUP BY sdr
-        ORDER BY total_ligacoes DESC NULLS LAST
       `;
-      result = await client.queryObject(query);
+      const params: string[] = [];
+      
+      if (dateFrom && dateTo) {
+        query += ` WHERE dia_registro BETWEEN $1 AND $2`;
+        params.push(dateFrom, dateTo);
+      }
+      
+      query += ` GROUP BY sdr ORDER BY total_ligacoes DESC NULLS LAST`;
+      result = await client.queryObject(query, params);
     } else if (type === "daily_metrics") {
-      const query = `
+      let query = `
         SELECT 
           dia_registro,
           ${safeInt('leads_recebidos')} as leads_recebidos,
           ${safeInt('prospeccao')} as prospeccao,
           ${safeInt('conexao')} as conexao
         FROM comercial_clint_basemae
-        ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
-        ORDER BY dia_registro DESC
-        LIMIT 30
       `;
-      result = await client.queryObject(query);
+      const params: string[] = [];
+      
+      if (dateFrom && dateTo) {
+        query += ` WHERE dia_registro BETWEEN $1 AND $2`;
+        params.push(dateFrom, dateTo);
+      }
+      
+      query += ` ORDER BY dia_registro DESC LIMIT 30`;
+      result = await client.queryObject(query, params);
     } else if (type === "sdr_daily") {
-      const query = `
+      let query = `
         SELECT 
           dia_registro,
           sdr,
@@ -87,30 +157,40 @@ serve(async (req) => {
           ${safeInt('whatsap')} as whatsap,
           tempo
         FROM comercial_sdr
-        ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
-        ORDER BY dia_registro DESC, sdr
-        LIMIT 100
       `;
-      result = await client.queryObject(query);
+      const params: string[] = [];
+      
+      if (dateFrom && dateTo) {
+        query += ` WHERE dia_registro BETWEEN $1 AND $2`;
+        params.push(dateFrom, dateTo);
+      }
+      
+      query += ` ORDER BY dia_registro DESC, sdr LIMIT 100`;
+      result = await client.queryObject(query, params);
     } else if (type === "totals") {
-      const sdrQuery = `
+      let sdrQuery = `
         SELECT 
           COALESCE(SUM(${safeInt('ligacoes')}), 0)::integer as total_ligacoes,
           COALESCE(SUM(${safeInt('whatsap')}), 0)::integer as total_whatsapp
         FROM comercial_sdr
-        ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
       `;
-      const basemaeQuery = `
+      let basemaeQuery = `
         SELECT 
           COALESCE(SUM(${safeInt('leads_recebidos')}), 0)::integer as total_leads,
           COALESCE(SUM(${safeInt('prospeccao')}), 0)::integer as total_prospeccao,
           COALESCE(SUM(${safeInt('conexao')}), 0)::integer as total_conexao
         FROM comercial_clint_basemae
-        ${dateFrom && dateTo ? `WHERE dia_registro BETWEEN '${dateFrom}' AND '${dateTo}'` : ''}
       `;
+      const params: string[] = [];
       
-      const sdrResult = await client.queryObject(sdrQuery);
-      const basemaeResult = await client.queryObject(basemaeQuery);
+      if (dateFrom && dateTo) {
+        sdrQuery += ` WHERE dia_registro BETWEEN $1 AND $2`;
+        basemaeQuery += ` WHERE dia_registro BETWEEN $1 AND $2`;
+        params.push(dateFrom, dateTo);
+      }
+      
+      const sdrResult = await client.queryObject(sdrQuery, params);
+      const basemaeResult = await client.queryObject(basemaeQuery, params);
       
       const sdrData = sdrResult.rows[0] as Record<string, unknown> || {};
       const basemaeData = basemaeResult.rows[0] as Record<string, unknown> || {};

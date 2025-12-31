@@ -1,10 +1,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Client } from "https://deno.land/x/postgres@v0.17.0/mod.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Validate date format (DD/MM/YYYY or YYYY-MM-DD)
+function isValidDateFormat(dateStr: string): boolean {
+  if (!dateStr || typeof dateStr !== 'string') return false;
+  const ddmmyyyyRegex = /^\d{2}\/\d{2}\/\d{4}$/;
+  const yyyymmddRegex = /^\d{4}-\d{2}-\d{2}$/;
+  return ddmmyyyyRegex.test(dateStr) || yyyymmddRegex.test(dateStr);
+}
 
 async function fetchSDRData(client: Client, dataInicio: string, dataFim: string) {
   // Query para dados de produtividade por SDR
@@ -76,12 +85,48 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Verify authentication
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return new Response(
+      JSON.stringify({ error: 'Missing authorization header', semana_atual: [], semana_anterior: [] }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+  );
+
+  const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
+    authHeader.replace('Bearer ', '')
+  );
+
+  if (authError || !user) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized', semana_atual: [], semana_anterior: [] }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   let client: Client | null = null;
 
   try {
     const { data_inicio, data_fim, data_inicio_anterior, data_fim_anterior } = await req.json();
     
-    console.log("Buscando produtividade SDR:", { data_inicio, data_fim, data_inicio_anterior, data_fim_anterior });
+    // Validate all date inputs
+    const dates = [data_inicio, data_fim, data_inicio_anterior, data_fim_anterior];
+    for (const date of dates) {
+      if (date && !isValidDateFormat(date)) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid date format. Use DD/MM/YYYY or YYYY-MM-DD', semana_atual: [], semana_anterior: [] }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    
+    console.log("Buscando produtividade SDR:", { data_inicio, data_fim, data_inicio_anterior, data_fim_anterior, user_id: user.id });
 
     const dbHost = Deno.env.get("EXTERNAL_DB_HOST");
     const dbPort = Deno.env.get("EXTERNAL_DB_PORT");
