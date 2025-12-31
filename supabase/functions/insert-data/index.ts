@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Client } from "https://deno.land/x/postgres@v0.17.0/mod.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,6 +9,18 @@ const corsHeaders = {
 
 // Maximum safe string length for PostgreSQL wire protocol
 const MAX_STRING_LENGTH = 50000;
+
+// Whitelist of allowed tables
+const ALLOWED_TABLES = [
+  'comercial_reunioes',
+  'comercial_sdr',
+  'comercial_clint_basemae',
+  'comercial_basemae',
+  'comercial_clint_text'
+];
+
+// Valid column name pattern
+const VALID_COLUMN_REGEX = /^[a-z_][a-z0-9_]*$/i;
 
 // Helper function to convert BigInt to Number for JSON serialization
 function convertBigInt(obj: any): any {
@@ -63,15 +76,59 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Verify authentication
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return new Response(
+      JSON.stringify({ error: 'Missing authorization header' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+  );
+
+  const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
+    authHeader.replace('Bearer ', '')
+  );
+
+  if (authError || !user) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   let client: Client | null = null;
 
   try {
     const { tableName, data, webhookUrl } = await req.json();
     
-    console.log('Inserting data into table:', tableName, 'columns:', Object.keys(data));
+    console.log('Inserting data into table:', tableName, 'columns:', Object.keys(data), 'user:', user.id);
 
     if (!tableName || !data) {
       throw new Error('tableName and data are required');
+    }
+
+    // Validate table name against whitelist
+    if (!ALLOWED_TABLES.includes(tableName)) {
+      return new Response(
+        JSON.stringify({ error: `Table "${tableName}" is not allowed` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate column names
+    const columns = Object.keys(data);
+    for (const col of columns) {
+      if (!VALID_COLUMN_REGEX.test(col)) {
+        return new Response(
+          JSON.stringify({ error: `Invalid column name: "${col}"` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     const dbHost = Deno.env.get('EXTERNAL_DB_HOST');
@@ -123,12 +180,12 @@ serve(async (req) => {
     console.log('Large text columns to chunk:', largeTextColumns.map(c => c.column));
 
     // Build the initial INSERT query with parameterized values
-    const columns = Object.keys(initialData);
+    const insertColumns = Object.keys(initialData);
     const values = Object.values(initialData);
-    const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ');
+    const placeholders = insertColumns.map((_, i) => `$${i + 1}`).join(', ');
     
     const insertQuery = `
-      INSERT INTO ${dbSchema}.${tableName} (${columns.join(', ')})
+      INSERT INTO ${dbSchema}.${tableName} (${insertColumns.join(', ')})
       VALUES (${placeholders})
       RETURNING *
     `;
@@ -210,12 +267,10 @@ serve(async (req) => {
   } catch (error) {
     const err = error as Error;
     console.error('Error inserting data:', err.message);
-    console.error('Error stack:', err.stack);
     
     return new Response(
       JSON.stringify({ 
-        error: err.message,
-        details: err.stack
+        error: err.message
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
