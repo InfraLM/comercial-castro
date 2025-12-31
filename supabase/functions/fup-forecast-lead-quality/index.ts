@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Client } from "https://deno.land/x/postgres@v0.17.0/mod.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,31 +19,6 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Verify authentication
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader) {
-    return new Response(
-      JSON.stringify({ success: false, error: 'Missing authorization header', data: [] }),
-      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-  );
-
-  const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
-    authHeader.replace('Bearer ', '')
-  );
-
-  if (authError || !user) {
-    return new Response(
-      JSON.stringify({ success: false, error: 'Unauthorized', data: [] }),
-      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-
   let client: Client | null = null;
 
   try {
@@ -58,7 +32,7 @@ serve(async (req) => {
       );
     }
     
-    console.log("Buscando qualidade de leads:", { data_inicio, data_fim, user_id: user.id });
+    console.log("Buscando qualidade de leads:", { data_inicio, data_fim });
 
     const dbHost = Deno.env.get("EXTERNAL_DB_HOST");
     const dbPort = Deno.env.get("EXTERNAL_DB_PORT");
