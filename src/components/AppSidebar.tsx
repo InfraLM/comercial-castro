@@ -1,4 +1,4 @@
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, ShieldCheck } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 
@@ -11,6 +11,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
 
@@ -59,6 +60,23 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      <SidebarFooter className="p-2">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive("/admin")}>
+              <NavLink 
+                to="/admin"
+                className="hover:bg-sidebar-accent transition-colors"
+                activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+              >
+                <ShieldCheck className="h-5 w-5" />
+                {open && <span>Administrador</span>}
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }
